@@ -6,14 +6,3 @@ class HttpDataSource(DataSource):
         super().__init__(runtime_id, name)
         print("Http data source created")
 
-    def migrate():
-        pass
-
-    def collect():
-        pass
-
-    def clean():
-        pass
-
-    def persist():
-        pass

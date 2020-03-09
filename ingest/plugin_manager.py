@@ -6,7 +6,7 @@ import logging
 
 from uuid import uuid4
 
-logging.basicConfig(level=logging.DEBUG)
+log = logging.getLogger(__name__)
 
 
 class PluginManager(object):
@@ -27,14 +27,14 @@ class PluginManager(object):
         return join(script_dir, "user_plugins")
 
     def load_plugins(self):
-        logging.info(f"Loading plugins...")
+        log.info(f"Loading plugins...")
         plugins_dir = self.get_user_plugins_dir()
         for file in listdir(plugins_dir):
             if file == "__pycache__":
                 continue
             plugin_path = join(plugins_dir, file)
             module_name = f"{file}"
-            logging.info(f"\tloading plugin {module_name} ({plugin_path})...")
+            log.info(f"\tloading plugin {module_name} ({plugin_path})...")
             spec = importlib.util.spec_from_file_location(
                 f"plugin_{module_name}", plugin_path
             )

@@ -2,6 +2,7 @@ from plugin_manager import PluginManager
 from app import app
 from config import LISTEN_PORT, DEBUG
 
+
 if __name__ == "__main__":
     pm = PluginManager()
     pm.load_plugins()
