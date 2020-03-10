@@ -3,6 +3,7 @@ from os import listdir
 import importlib.util
 
 import logging
+from data_source import DataSource
 
 from uuid import uuid4
 
@@ -41,6 +42,13 @@ class PluginManager(object):
             plugin_module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(plugin_module)
             plugin_uuid = uuid4()
-            self._plugins[plugin_uuid] = plugin_module.Plugin(
-                runtime_id=plugin_uuid, name=module_name
+            data_source = DataSource(
+                plugin_uuid,
+                module_name,
+                schedule_cb=plugin_module.schedule,
+                init_cb=plugin_module.init,
+                migrate_cb=plugin_module.migrate_if_needed,
+                fetch_cb=plugin_module.fetch_data,
+                clean_cb=plugin_module.clean_data,
             )
+            self._plugins[plugin_uuid] = data_source
