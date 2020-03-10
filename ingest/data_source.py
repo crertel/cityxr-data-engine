@@ -1,5 +1,6 @@
 from enum import Enum
 import logging
+import importlib.util
 
 from datetime import datetime, timezone
 from multiprocessing import Process, Pipe
@@ -25,53 +26,41 @@ class DSState(Enum):
 
 
 class DataSource:
-    def __init__(
-        self, runtime_id, name, schedule_cb, init_cb, migrate_cb, fetch_cb, clean_cb
-    ):
+    def __init__(self, runtime_id, name, module_path):
         self.runtime_id = runtime_id
         self.name = name
         self.started_at = datetime.now(timezone.utc)
-
+        self.module_path = module_path
         (child_pipe, parent_pipe) = Pipe(duplex=True)
         self._child_pipe = child_pipe
         self._process = Process(
             target=DataSource.do_run,
             name=f"{name}_{runtime_id}",
             daemon=True,
-            args=(
-                {
-                    "name": name,
-                    "runtime_id": runtime_id,
-                    "parent_pipe": parent_pipe,
-                    "schedule_cb": schedule_cb,
-                    "init_cb": init_cb,
-                    "migrate_cb": migrate_cb,
-                    "fetch_cb": fetch_cb,
-                    "clean_cb": clean_cb,
-                }
-            ),
+            args=(name, runtime_id, parent_pipe, module_path,),
         )
         self._process.start()
 
-    def do_run(
-        runtime_id,
-        name,
-        parent_pipe,
-        schedule_cb,
-        init_cb,
-        migrate_cb,
-        fetch_cb,
-        clean_cb,
-    ):
-        state = init_cb(runtime_id, name)
+    def do_run(runtime_id, name, parent_pipe, module_path):
+        print("loading from " + module_path)
+        spec = importlib.util.spec_from_file_location(f"plugin_{name}", module_path)
+        plugin_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(plugin_module)
+        init = plugin_module.init
+        schedule = plugin_module.schedule
+        migrate_if_needed = plugin_module.migrate_if_needed
+        fetch_data = plugin_module.fetch_data
+        clean_data = plugin_module.clean_data
+
+        state = init(runtime_id, name)
 
         # TODO <setup scheduler>
-        schedule = schedule_cb()
+        schedule = schedule()
 
         # TODO <handle DB migrations via migrate_if_needed>
         # db_connection = <get the database connection>
         db_connection = None
-        migrate_cb(db_connection)
+        migrate_if_needed(db_connection)
 
         # while <pump messages queue>:
         #
@@ -90,8 +79,8 @@ class DataSource:
             run_start_time = datetime.now(timezone.utc)
             run_succeeded = False
             try:
-                raw_data = fetch_cb(db_connection, run_id)
-                clean_cb(db_connection, run_id, raw_data)
+                raw_data = fetch_data(db_connection, run_id)
+                clean_data(db_connection, run_id, raw_data)
                 run_succeeded = True
             except:
                 # TODO log errors
