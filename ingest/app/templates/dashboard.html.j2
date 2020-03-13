@@ -1,6 +1,7 @@
 {%- extends "layout.html.j2" %}
 
 {% block content %}
+
 <div class="container">
   <div class="jumbotron">
     <h1>Ingest Dashboard</h1>
@@ -11,6 +12,7 @@
       <li>
         <a href="/sources/{{pid}}">
         {{pinstance.name}} -- {{ pid }} -- {{pinstance.state}} -- {{pinstance.started_at.isoformat()}}
+        <br> next runtime: {{pinstance.next_trigger_time.isoformat()}}
         </a>
       </li>
       {% endfor %}
