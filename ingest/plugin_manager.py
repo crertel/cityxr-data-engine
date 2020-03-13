@@ -28,14 +28,14 @@ class PluginManager(object):
         return join(script_dir, "user_data_sources")
 
     def load_plugins(self):
-        log.info(f"Loading plugins...")
+        log.warning(f"Loading plugins...")
         plugins_dir = self.get_user_plugins_dir()
         for file in listdir(plugins_dir):
             if file == "__pycache__":
                 continue
             module_path = join(plugins_dir, file)
             module_name = f"{file}"
-            log.info(f"\tloading plugin {module_name} ({module_path})...")
+            log.warning(f"\tloading plugin {module_name} ({module_path})...")
             dsid = uuid4()
             data_source = DataSource(
                 runtime_id=dsid, name=module_name, module_path=module_path

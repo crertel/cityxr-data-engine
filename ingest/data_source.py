@@ -1,4 +1,5 @@
 from enum import Enum
+from time import sleep
 import logging
 import importlib.util
 
@@ -33,6 +34,14 @@ class DataSource:
         self.module_path = module_path
         (child_pipe, parent_pipe) = Pipe(duplex=True)
         self._child_pipe = child_pipe
+        self._start_process(
+            name=name,
+            runtime_id=runtime_id,
+            parent_pipe=parent_pipe,
+            module_path=module_path,
+        )
+
+    def _start_process(self, name, runtime_id, parent_pipe, module_path):
         self._process = Process(
             target=DataSource.do_run,
             name=f"{name}_{runtime_id}",
@@ -41,8 +50,16 @@ class DataSource:
         )
         self._process.start()
 
+    def retstart(self):
+        self._process.kill()
+        (child_pipe, parent_pipe) = Pipe(duplex=True)
+        self._child_pipe = child_pipe
+        self._start_process(
+            name=self.name, runtime_id=self.runtime_id, module_path=self.module_path
+        )
+
     def do_run(runtime_id, name, parent_pipe, module_path):
-        print("loading from " + module_path)
+        log.warning("loading from " + module_path)
         spec = importlib.util.spec_from_file_location(f"plugin_{name}", module_path)
         plugin_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(plugin_module)
@@ -54,8 +71,9 @@ class DataSource:
 
         state = init(runtime_id, name)
 
-        # TODO <setup scheduler>
-        schedule = schedule()
+        next_trigger_time = None
+        last_trigger_time = None
+        schedule_trigger = schedule()
 
         # TODO <handle DB migrations via migrate_if_needed>
         # db_connection = <get the database connection>
@@ -74,19 +92,24 @@ class DataSource:
                 pass
 
             # after we handle pending events, if schedule says so we do a run.
-            # TODO: <only do this if the scheduler says it's time to
-            run_id = uuid4()
-            run_start_time = datetime.now(timezone.utc)
-            run_succeeded = False
-            try:
-                raw_data = fetch_data(db_connection, run_id)
-                clean_data(db_connection, run_id, raw_data)
-                run_succeeded = True
-            except:
-                # TODO log errors
-                pass
-            finally:
-                pass
-                # TODO record run results
 
-            # TODO: sleep some reasonable amount b/c schedule
+            now = datetime.now(timezone.utc)
+            if next_trigger_time is None or now >= next_trigger_time:
+                next_trigger_time = schedule_trigger.get_next_fire_time(
+                    last_trigger_time, now
+                )
+
+                run_id = uuid4()
+                run_start_time = datetime.now(timezone.utc)
+                run_succeeded = False
+                try:
+                    raw_data = fetch_data(db_connection, run_id)
+                    clean_data(db_connection, run_id, raw_data)
+                    run_succeeded = True
+                except:
+                    # TODO log errors
+                    pass
+                finally:
+                    pass
+                    # TODO record run results
+            sleep(1)
