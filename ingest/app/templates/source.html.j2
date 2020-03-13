@@ -1,9 +1,32 @@
 {%- extends "layout.html.j2" %}
 
+
 {% block content %}
 <div class="container">
   <div class="jumbotron">
-    <h1>Datasource Details</h1>
+    <h2>Datasource Details</h2>
+    <small> <a href="/">Back to dashboard...</a> </small>
   </div>
+
+  <h3>Stats</h3>
+  <ul>
+  <li><b>name:</b> {{ds.name}}</li>
+  <li><b>runtime id:</b> {{ds.runtime_id}}</li>
+  </ul>
+
+  <h3>Code</h3>
+  <div id="editor" style="height: 200px;">{{ds.source_code}}</div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded',() => {
+  var editor = ace.edit("editor", {
+    mode: "ace/mode/python",
+    theme: "ace/theme/monokai",
+    readOnly: true
+  });
+
+  });
+</script>
+
 {%- endblock %}

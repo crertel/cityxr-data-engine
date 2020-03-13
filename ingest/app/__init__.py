@@ -1,6 +1,5 @@
 from flask import Flask
 from flask_bootstrap import Bootstrap
-from plugin_manager import PluginManager
 
 app = Flask(__name__)
 Bootstrap(app)
