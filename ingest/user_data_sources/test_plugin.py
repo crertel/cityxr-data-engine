@@ -12,6 +12,7 @@ def schedule():
     Gets the scheduled run for the data source.
     Returns the scheduled time for the data source.
     """
+    # lolwut
     return IntervalTrigger(seconds=5)
 
 

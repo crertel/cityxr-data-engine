@@ -12,15 +12,9 @@ def root():
     return redirect("/dashboard", 302)
 
 
-import pprint
-import uuid
-
-
 @app.route("/sources/<source_id>")
 def source_details(source_id):
-
-    plugin = PluginManager().get_plugin(uuid.UUID(source_id))
-    log.warning(pprint.pformat(PluginManager().get_plugins()))
+    plugin = PluginManager().get_plugin(source_id)
     return render_template("source.html.j2", ds=plugin)
 
 

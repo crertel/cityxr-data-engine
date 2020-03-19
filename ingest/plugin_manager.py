@@ -5,7 +5,7 @@ from pathlib import Path
 import logging
 from data_source import DataSource
 
-from uuid import uuid4
+from util import get_string_sha1
 
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
@@ -44,7 +44,7 @@ class PluginManager(object):
             module_path = join(plugins_dir, file)
             module_name = f"{file}"
             log.warning(f"\tloading plugin {module_name} ({module_path})...")
-            dsid = uuid4()
+            dsid = get_string_sha1(module_name)
 
             data_source = DataSource(
                 source_code=Path(module_path).read_text(),
