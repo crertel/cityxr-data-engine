@@ -1,4 +1,3 @@
-from enum import Enum
 from time import sleep
 import logging
 import importlib.util
@@ -9,21 +8,6 @@ from multiprocessing import Process, Pipe
 from uuid import uuid4
 
 log = logging.getLogger(__name__)
-
-
-class DSState(Enum):
-    starting = "starting"
-    running = "running"
-    paused = "paused"
-    terminated = "terminated"
-    errored = "errored"
-    disabled = "disabled"
-
-    def __repr__(self):
-        return self.name
-
-    def __str__(self):
-        return self.name
 
 
 class DataSource:
@@ -100,7 +84,7 @@ class DataSource:
             # if we have messages from the main process, handle them
             while parent_pipe.poll() is True:
                 msg = parent_pipe.recv()
-                # handle state querying messages, whatever else
+                # TODO: handle state querying messages, whatever else
 
             # after we handle pending events, if schedule says so we do a run.
             now = datetime.now(timezone.utc)
@@ -117,10 +101,19 @@ class DataSource:
                     raw_data = fetch_data(db_connection, run_id)
                     clean_data(db_connection, run_id, raw_data)
                     run_succeeded = True
-                except:
+                except Exception as err:
                     # TODO log errors
+                    log.error(err)
                     pass
                 finally:
-                    pass
-                    # TODO record run results
+                    run_end_time = datetime.now(timezone.utc)
+                    run_duration = run_end_time - run_start_time
+
+                    # TODO record run statistics
+                    if run_succeeded:
+                        log.error(f"Run #{run_id} finished in #{run_duration}")
+                        pass
+                    else:
+                        log.error(f"Run #{run_id} failed in #{run_duration}")
+                        pass
             sleep(1)
