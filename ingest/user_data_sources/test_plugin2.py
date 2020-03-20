@@ -23,13 +23,8 @@ def init(runtime_id, name):
     return {}
 
 
-def migrate_if_needed(db_connection):
-    """
-    Checks if the schema and tables for a data source exist in the DB.
-    Does nothing if they do, creates them if they don't.
-    """
-    log.warning(f"CHONKY pretending to setup data schema")
-    sleep(1)
+def get_fields():
+    return {}
 
 
 def fetch_data(db_connection, run_id):

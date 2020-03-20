@@ -5,6 +5,8 @@ import importlib.util
 from datetime import datetime, timezone
 from multiprocessing import Process, Pipe
 
+from database_connection import DatabaseConnection
+
 from uuid import uuid4
 
 log = logging.getLogger(__name__)
@@ -22,17 +24,17 @@ class DataSource:
         self._start_process(
             name=name,
             runtime_id=runtime_id,
-            parent_pipe=parent_pipe,
             module_path=module_path,
+            parent_pipe=parent_pipe,
         )
         self.next_trigger_time = None
 
-    def _start_process(self, name, runtime_id, parent_pipe, module_path):
+    def _start_process(self, name, runtime_id, module_path, parent_pipe):
         self._process = Process(
             target=DataSource.do_run,
             name=f"{name}_{runtime_id}",
             daemon=True,
-            args=(name, runtime_id, parent_pipe, module_path,),
+            args=(name, runtime_id, module_path, parent_pipe),
         )
         self._process.start()
 
@@ -41,7 +43,10 @@ class DataSource:
         (child_pipe, parent_pipe) = Pipe(duplex=True)
         self._child_pipe = child_pipe
         self._start_process(
-            name=self.name, runtime_id=self.runtime_id, module_path=self.module_path
+            name=self.name,
+            runtime_id=self.runtime_id,
+            module_path=self.module_path,
+            parent_pipe=parent_pipe,
         )
 
     def update(self):
@@ -55,16 +60,18 @@ class DataSource:
             log.warning(msg)
             # handle state querying messages, whatever else
 
-    def do_run(runtime_id, name, parent_pipe, module_path):
+    def do_run(name, runtime_id, module_path, parent_pipe):
         log.warning("loading from " + module_path)
         spec = importlib.util.spec_from_file_location(f"plugin_{name}", module_path)
         plugin_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(plugin_module)
         init = plugin_module.init
         schedule = plugin_module.schedule
-        migrate_if_needed = plugin_module.migrate_if_needed
+        data_source_fields = plugin_module.get_fields()
         fetch_data = plugin_module.fetch_data
         clean_data = plugin_module.clean_data
+
+        log.error(f"rid {runtime_id} name {name}")
 
         state = init(runtime_id, name)
 
@@ -72,10 +79,11 @@ class DataSource:
         last_trigger_time = None
         schedule_trigger = schedule()
 
-        # TODO <handle DB migrations via migrate_if_needed>
-        # db_connection = <get the database connection>
-        db_connection = None
-        migrate_if_needed(db_connection)
+        db_connection = DatabaseConnection(runtime_id)
+        db_connection.conect_to_database()
+
+        if not db_connection.check_if_schema_exists():
+            db_connection.schema_setup(data_source_fields)
 
         # while <pump messages queue>:
         #
