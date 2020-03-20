@@ -7,7 +7,7 @@ services:
       POSTGRES_USER: cxrdev
       POSTGRES_PASSWORD: cxrdev
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -d cxr_dev -U cxrdev"]
       interval: 5s
       timeout: 30s
       retries: 3

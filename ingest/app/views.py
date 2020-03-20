@@ -2,6 +2,10 @@ from app import app
 from flask import url_for, redirect, render_template, flash, g, session
 from plugin_manager import PluginManager
 
+import logging
+
+log = logging.getLogger()
+
 
 @app.route("/")
 def root():
@@ -10,8 +14,8 @@ def root():
 
 @app.route("/sources/<source_id>")
 def source_details(source_id):
-    plugin = PluginManager().get_plugins()[source_id]
-    return render_template("source.html.j2", plugin=plugin)
+    plugin = PluginManager().get_plugin(source_id)
+    return render_template("source.html.j2", ds=plugin)
 
 
 @app.route("/dashboard")
