@@ -24,7 +24,7 @@ def init(runtime_id, name):
 
 
 def get_fields():
-    return {}
+    return {"b": "decimal"}
 
 
 def fetch_data(db_connection, run_id):

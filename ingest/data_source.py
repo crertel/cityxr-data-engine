@@ -9,6 +9,8 @@ from database_connection import DatabaseConnection
 
 from uuid import uuid4
 
+import traceback
+
 log = logging.getLogger(__name__)
 
 
@@ -106,6 +108,8 @@ class DataSource:
                 run_start_time = datetime.now(timezone.utc)
                 run_succeeded = False
                 db_connection.begin_run(run_id)
+                db_connection.empty_current_raw_table()
+                db_connection.empty_current_clean_table()
                 try:
                     db_connection.update_run(run_id, "fetching")
                     raw_data = fetch_data(db_connection, run_id)
@@ -114,6 +118,12 @@ class DataSource:
                     run_succeeded = True
                 except Exception as err:
                     # TODO log errors
+                    db_connection.log(
+                        time=datetime.now(timezone.utc),
+                        severity="error",
+                        message=traceback.format_exc(),
+                        run_id=run_id,
+                    )
                     log.error(err)
                     pass
                 finally:

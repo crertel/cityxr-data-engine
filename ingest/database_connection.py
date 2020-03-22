@@ -22,6 +22,41 @@ log = logging.getLogger(__name__)
 # - Data source current cleaning
 
 
+def build_sql_for_data_table(schema_name, table_name, table_desecription):
+    DATATYPES = {
+        "decimal": "double precision not null",
+        "string": "text not null",
+        "boolean": "boolean not null",
+        "timestamp": "timestamptz not null",
+    }
+
+    column_decls = []
+    for column_name, data_type in table_desecription.items():
+        column_data_decl = DATATYPES[data_type]
+        column_decls.append(
+            sql.SQL("{column_name} {column_data_decl}").format(
+                column_name=sql.Identifier(column_name),
+                column_data_decl=sql.SQL(column_data_decl),
+            )
+        )
+
+    return sql.SQL(
+        """
+        create table {schema}.{table_name} (
+            __id uuid primary key default uuid_generate_v4(),
+            __run_id uuid not null,
+            {column_decls}
+        );
+        create index on {schema}.{table_name}(__id);
+        create index on {schema}.{table_name}(__run_id);
+        """
+    ).format(
+        schema=sql.Identifier(schema_name),
+        table_name=sql.Identifier(table_name),
+        column_decls=sql.SQL(",").join(column_decls),
+    )
+
+
 class DatabaseConnection:
     def __init__(self, data_source_runtime_id):
         self._data_source_runtime_id = data_source_runtime_id
@@ -92,6 +127,41 @@ class DatabaseConnection:
         ).format(sql.Identifier(self._schema_name))
         self._cursor.execute(create_ds_runs_sql)
         self._conn.commit()
+
+        self._cursor.execute(
+            build_sql_for_data_table(self._schema_name, "archive_raw", fields)
+        )
+        self._conn.commit()
+        self._cursor.execute(
+            build_sql_for_data_table(self._schema_name, "archive_clean", fields)
+        )
+        self._conn.commit()
+        self._cursor.execute(
+            build_sql_for_data_table(self._schema_name, "current_raw", fields)
+        )
+        self._conn.commit()
+        self._cursor.execute(
+            build_sql_for_data_table(self._schema_name, "current_clean", fields)
+        )
+        self._conn.commit()
+
+    def empty_table(self, table_name):
+        truncate_sql = sql.SQL(
+            """
+            truncate {schema}.{table_name};
+            """
+        ).format(
+            schema=sql.Identifier(self._schema_name),
+            table_name=sql.Identifier(table_name),
+        )
+        self._cursor.execute(truncate_sql)
+        self._conn.commit()
+
+    def empty_current_raw_table(self):
+        self.empty_table("current_raw")
+
+    def empty_current_clean_table(self):
+        self.empty_table("current_clean")
 
     def begin_run(self, run_id):
         log_sql = sql.SQL(
