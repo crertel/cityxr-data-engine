@@ -1,8 +1,13 @@
-import psycopg2
-from psycopg2 import sql
 from config import PG_URL
 from pprint import pformat
 import logging
+
+import psycopg2
+from psycopg2 import sql
+import psycopg2.extras
+
+psycopg2.extras.register_uuid()
+
 
 log = logging.getLogger(__name__)
 
@@ -27,6 +32,15 @@ class DatabaseConnection:
     def conect_to_database(self):
         self._conn = psycopg2.connect(PG_URL)
         self._cursor = self._conn.cursor()
+
+    def purge_datasource_schema(self):
+        purge_ds_schema_sql = sql.SQL(
+            """
+            drop schema if exists {} cascade;
+        """
+        ).format(sql.Identifier(self._schema_name))
+        self._cursor.execute(purge_ds_schema_sql)
+        self._conn.commit()
 
     def check_if_schema_exists(self):
         sql = """
@@ -53,10 +67,10 @@ class DatabaseConnection:
         # create log schema
         create_ds_log_sql = sql.SQL(
             """
-        create extension if not exists "uuid-ossp";
         create table {}.log (
             id uuid primary key default uuid_generate_v4(),
-            time timestamp with timezone not null default now(),
+            time timestamptz not null default now(),
+            severity text not null,
             msg text not null,
             run uuid not null default uuid_nil()
         );
@@ -70,8 +84,8 @@ class DatabaseConnection:
             """
         create table {}.runs (
             id uuid primary key,
-            started_at timestamp with timezone not null default now(),
-            ended_at timestamp with timezone not null default infinity,
+            started_at timestamptz not null default now(),
+            ended_at timestamptz not null default 'infinity'::timestamptz,
             state text not null
         );
         """
@@ -79,14 +93,50 @@ class DatabaseConnection:
         self._cursor.execute(create_ds_runs_sql)
         self._conn.commit()
 
-    def log_message(self, time, message, run_id):
+    def begin_run(self, run_id):
         log_sql = sql.SQL(
             """
-        insert into {}.log(time, msg, run) values (%s,%s,%s);
+        insert into {}.runs(id, started_at, state) values (%s, now(), 'running');
+        """
+        ).format(sql.Identifier(self._schema_name))
+        self._cursor.execute(log_sql, (run_id,))
+        self._conn.commit()
+
+    def update_run(self, run_id, curr_state):
+        update_run_sql = sql.SQL(
+            """
+        update {}.runs
+        set
+            state = %s
+        where
+            id = %s;
+        """
+        ).format(sql.Identifier(self._schema_name))
+        self._cursor.execute(update_run_sql, (curr_state, run_id))
+        self._conn.commit()
+
+    def end_run(self, run_id, ending_type):
+        end_run_sql = sql.SQL(
+            """
+        update {}.runs
+        set
+            ended_at = now(),
+            state = %s
+        where
+            id = %s;
+        """
+        ).format(sql.Identifier(self._schema_name))
+        self._cursor.execute(end_run_sql, (ending_type, run_id))
+        self._conn.commit()
+
+    def log(self, time, severity, message, run_id):
+        log_sql = sql.SQL(
+            """
+        insert into {}.log(time, severity, msg, run) values (%s,%s,%s, %s);
         """
         ).format(sql.Identifier(self._schema_name))
 
-        self._cursor.execute(log_sql, (time, message, run_id))
+        self._cursor.execute(log_sql, (time, severity, message, run_id))
         self._conn.commit()
 
     def log_messages(self, messages):

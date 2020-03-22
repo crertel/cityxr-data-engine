@@ -73,7 +73,7 @@ class DataSource:
 
         log.error(f"rid {runtime_id} name {name}")
 
-        state = init(runtime_id, name)
+        init(runtime_id, name)
 
         next_trigger_time = None
         last_trigger_time = None
@@ -105,8 +105,11 @@ class DataSource:
                 run_id = uuid4()
                 run_start_time = datetime.now(timezone.utc)
                 run_succeeded = False
+                db_connection.begin_run(run_id)
                 try:
+                    db_connection.update_run(run_id, "fetching")
                     raw_data = fetch_data(db_connection, run_id)
+                    db_connection.update_run(run_id, "cleaning")
                     clean_data(db_connection, run_id, raw_data)
                     run_succeeded = True
                 except Exception as err:
@@ -119,9 +122,9 @@ class DataSource:
 
                     # TODO record run statistics
                     if run_succeeded:
-                        log.error(f"Run #{run_id} finished in #{run_duration}")
-                        pass
+                        log.error(f"Run #{run_id} succeeded in #{run_duration}")
+                        db_connection.end_run(run_id, "succeeded")
                     else:
                         log.error(f"Run #{run_id} failed in #{run_duration}")
-                        pass
+                        db_connection.end_run(run_id, "failed")
             sleep(1)
