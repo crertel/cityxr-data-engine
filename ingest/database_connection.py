@@ -20,9 +20,9 @@ log = logging.getLogger(__name__)
 # - Data source current raw data intake
 # - Data source historical cleaning
 # - Data source current cleaning
-
-
-def build_sql_for_data_table(schema_name, table_name, table_desecription):
+def build_sql_for_data_table(
+    schema_name, table_name, table_desecription, is_unlogged=False
+):
     DATATYPES = {
         "decimal": "double precision not null",
         "string": "text not null",
@@ -40,9 +40,12 @@ def build_sql_for_data_table(schema_name, table_name, table_desecription):
             )
         )
 
+    logged_table_decl = sql.SQL("create table")
+    unlogged_table_decl = sql.SQL("create unlogged table")
+
     return sql.SQL(
         """
-        create table {schema}.{table_name} (
+        {table_decl} {schema}.{table_name} (
             __id uuid primary key default uuid_generate_v4(),
             __run_id uuid not null,
             {column_decls}
@@ -51,6 +54,7 @@ def build_sql_for_data_table(schema_name, table_name, table_desecription):
         create index on {schema}.{table_name}(__run_id);
         """
     ).format(
+        table_decl=unlogged_table_decl if is_unlogged else logged_table_decl,
         schema=sql.Identifier(schema_name),
         table_name=sql.Identifier(table_name),
         column_decls=sql.SQL(",").join(column_decls),
@@ -137,11 +141,15 @@ class DatabaseConnection:
         )
         self._conn.commit()
         self._cursor.execute(
-            build_sql_for_data_table(self._schema_name, "current_raw", fields)
+            build_sql_for_data_table(
+                self._schema_name, "current_raw", fields, is_unlogged=True
+            )
         )
         self._conn.commit()
         self._cursor.execute(
-            build_sql_for_data_table(self._schema_name, "current_clean", fields)
+            build_sql_for_data_table(
+                self._schema_name, "current_clean", fields, is_unlogged=True
+            )
         )
         self._conn.commit()
 
@@ -198,6 +206,70 @@ class DatabaseConnection:
         ).format(sql.Identifier(self._schema_name))
         self._cursor.execute(end_run_sql, (ending_type, run_id))
         self._conn.commit()
+
+    def insert_data_current_raw(self, run_id, data_columns, data):
+        insert_sql = sql.SQL(
+            """
+        insert into {schema}.current_raw({data_columns}) values %s;
+        """
+        ).format(
+            schema=sql.Identifier(self._schema_name),
+            data_columns=sql.SQL(",").join(
+                [sql.Identifier(col_name) for col_name in data_columns]
+            ),
+        )
+        psycopg2.extras.execute_values(self._cursor, insert_sql, data)
+        self._conn.commit()
+
+        update_sql = sql.SQL(
+            """
+        update {schema}.current_raw set __run_id=%s;
+        """
+        ).format(schema=sql.Identifier(self._schema_name),)
+        self._cursor.execute(update_sql, (run_id,))
+        self._conn.commit()
+
+    def insert_data_current_clean(self, run_id, data_columns, data):
+        insert_sql = sql.SQL(
+            """
+        insert into {schema}.current_clean({data_columns}) values %s;
+        """
+        ).format(
+            schema=sql.Identifier(self._schema_name),
+            data_columns=sql.SQL(",").join(
+                [sql.Identifier(col_name) for col_name in data_columns]
+            ),
+        )
+        psycopg2.extras.execute_values(self._cursor, insert_sql, data)
+        self._conn.commit()
+
+        update_sql = sql.SQL(
+            """
+        update {schema}.current_clean set __run_id=%s;
+        """
+        ).format(schema=sql.Identifier(self._schema_name),)
+        self._cursor.execute(update_sql, (run_id,))
+        self._conn.commit()
+
+    def archive_raw(self):
+        archive_sql = sql.SQL(
+            """
+        select * into  {}.archive_raw from {}.current_raw;
+        """
+        ).format((sql.Identifier(self._schema_name), sql.Identifier(self._schema_name)))
+        self._cursor.execute(archive_sql)
+        self._conn.commit()
+        self.empty_current_raw_table()
+
+    def archive_clean(self):
+        archive_sql = sql.SQL(
+            """
+        select * into  {}.archive_clean from {}.current_clean;
+        """
+        ).format((sql.Identifier(self._schema_name), sql.Identifier(self._schema_name)))
+        self._cursor.execute(archive_sql)
+        self._conn.commit()
+        self.empty_current_clean_table()
 
     def log(self, time, severity, message, run_id):
         log_sql = sql.SQL(
