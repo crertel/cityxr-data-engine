@@ -207,69 +207,64 @@ class DatabaseConnection:
         self._cursor.execute(end_run_sql, (ending_type, run_id))
         self._conn.commit()
 
-    def insert_data_current_raw(self, run_id, data_columns, data):
-        insert_sql = sql.SQL(
+    def insert_data(self, table, run_id, data):
+        if len(data) > 0:
+            data_columns = list(data[0].keys())
+            insert_sql = sql.SQL(
+                """
+            insert into {schema}.{table_name}}({data_columns}) values %s;
             """
-        insert into {schema}.current_raw({data_columns}) values %s;
-        """
-        ).format(
-            schema=sql.Identifier(self._schema_name),
-            data_columns=sql.SQL(",").join(
-                [sql.Identifier(col_name) for col_name in data_columns]
-            ),
-        )
-        psycopg2.extras.execute_values(self._cursor, insert_sql, data)
-        self._conn.commit()
+            ).format(
+                schema=sql.Identifier(self._schema_name),
+                table_name=sql.Identifier(table),
+                data_columns=sql.SQL(",").join(
+                    [sql.Identifier(col_name) for col_name in data_columns]
+                ),
+            )
 
-        update_sql = sql.SQL(
+            template_params = [f"%({x})s" for x in data_columns]
+            template = f"({', '.join(template_params)})"
+
+            psycopg2.extras.execute_values(
+                self._cursor, insert_sql, data, template=template
+            )
+            self._conn.commit()
+
+            update_sql = sql.SQL(
+                """
+            update {schema}.{table_name} set __run_id=%s;
             """
-        update {schema}.current_raw set __run_id=%s;
-        """
-        ).format(schema=sql.Identifier(self._schema_name),)
-        self._cursor.execute(update_sql, (run_id,))
-        self._conn.commit()
+            ).format(
+                schema=sql.Identifier(self._schema_name),
+                table_name=sql.Identifier(table),
+            )
+            self._cursor.execute(update_sql, (run_id,))
+            self._conn.commit()
+
+    def insert_data_current_raw(self, run_id, data):
+        self.insert_data("current_raw", run_id, data)
 
     def insert_data_current_clean(self, run_id, data_columns, data):
-        insert_sql = sql.SQL(
+        self.insert_data("current_clean", run_id, data)
+
+    def archive_data(self, source_table, dest_table, clean_after=False):
+        archive_sql = sql.SQL(
             """
-        insert into {schema}.current_clean({data_columns}) values %s;
+        select * into  {schema}.{d_table} from {schema}.{s_table};
         """
         ).format(
             schema=sql.Identifier(self._schema_name),
-            data_columns=sql.SQL(",").join(
-                [sql.Identifier(col_name) for col_name in data_columns]
-            ),
+            d_table=dest_table,
+            s_table=source_table,
         )
-        psycopg2.extras.execute_values(self._cursor, insert_sql, data)
-        self._conn.commit()
-
-        update_sql = sql.SQL(
-            """
-        update {schema}.current_clean set __run_id=%s;
-        """
-        ).format(schema=sql.Identifier(self._schema_name),)
-        self._cursor.execute(update_sql, (run_id,))
+        self._cursor.execute(archive_sql)
         self._conn.commit()
 
     def archive_raw(self):
-        archive_sql = sql.SQL(
-            """
-        select * into  {}.archive_raw from {}.current_raw;
-        """
-        ).format((sql.Identifier(self._schema_name), sql.Identifier(self._schema_name)))
-        self._cursor.execute(archive_sql)
-        self._conn.commit()
-        self.empty_current_raw_table()
+        self.archive_data(source_table="current_raw", dest_table="archive_raw")
 
     def archive_clean(self):
-        archive_sql = sql.SQL(
-            """
-        select * into  {}.archive_clean from {}.current_clean;
-        """
-        ).format((sql.Identifier(self._schema_name), sql.Identifier(self._schema_name)))
-        self._cursor.execute(archive_sql)
-        self._conn.commit()
-        self.empty_current_clean_table()
+        self.archive_data(source_table="current_clean", dest_table="archive_clean")
 
     def log(self, time, severity, message, run_id):
         log_sql = sql.SQL(

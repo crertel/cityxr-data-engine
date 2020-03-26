@@ -113,11 +113,16 @@ class DataSource:
                 try:
                     db_connection.update_run(run_id, "fetching")
                     raw_data = fetch_data(db_connection, run_id)
+                    db_connection.insert_data_current_raw(run_id, raw_data)
+
                     db_connection.update_run(run_id, "cleaning")
-                    clean_data(db_connection, run_id, raw_data)
+                    clean_data = clean_data(db_connection, run_id, raw_data)
+                    db_connection.insert_data_current_clean(run_id, clean_data)
+
+                    db_connection.archive_raw()
+                    db_connection.archive_clean()
                     run_succeeded = True
                 except Exception as err:
-                    # TODO log errors
                     db_connection.log(
                         time=datetime.now(timezone.utc),
                         severity="error",
