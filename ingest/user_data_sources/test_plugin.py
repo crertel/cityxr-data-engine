@@ -1,5 +1,6 @@
 from time import sleep
 import logging
+import random
 
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -24,13 +25,8 @@ def init(runtime_id, name):
     return {}
 
 
-def migrate_if_needed(db_connection):
-    """
-    Checks if the schema and tables for a data source exist in the DB.
-    Does nothing if they do, creates them if they don't.
-    """
-    log.warning(f"pretending to setup data schema")
-    sleep(1)
+def get_fields():
+    return {"a": "decimal"}
 
 
 def fetch_data(db_connection, run_id):
@@ -40,7 +36,11 @@ def fetch_data(db_connection, run_id):
     """
     log.warning(f"pretending to fetch data for run {run_id}")
     sleep(1)
-    return []
+    return [
+        {"a": random.randint(1, 10)},
+        {"a": random.randint(1, 10)},
+        {"a": random.randint(1, 10)},
+    ]
 
 
 def clean_data(db_connection, run_id, run_data):
@@ -50,3 +50,4 @@ def clean_data(db_connection, run_id, run_data):
     """
     log.warning(f"pretending to clean data for run {run_id}")
     sleep(1)
+    return run_data

@@ -23,13 +23,8 @@ def init(runtime_id, name):
     return {}
 
 
-def migrate_if_needed(db_connection):
-    """
-    Checks if the schema and tables for a data source exist in the DB.
-    Does nothing if they do, creates them if they don't.
-    """
-    log.warning(f"CHONKY pretending to setup data schema")
-    sleep(1)
+def get_fields():
+    return {"b": "decimal"}
 
 
 def fetch_data(db_connection, run_id):
@@ -39,7 +34,7 @@ def fetch_data(db_connection, run_id):
     """
     log.warning(f"CHONKY pretending to fetch data for run {run_id}")
     sleep(1)
-    return []
+    return [{"b": 2}]
 
 
 def clean_data(db_connection, run_id, run_data):
@@ -49,3 +44,4 @@ def clean_data(db_connection, run_id, run_data):
     """
     log.warning(f"CHONKY pretending to clean data for run {run_id}")
     sleep(1)
+    return [x for x in run_data]
