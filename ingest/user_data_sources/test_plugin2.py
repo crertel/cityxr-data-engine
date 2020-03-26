@@ -34,7 +34,7 @@ def fetch_data(db_connection, run_id):
     """
     log.warning(f"CHONKY pretending to fetch data for run {run_id}")
     sleep(1)
-    return []
+    return [{"b": 2}]
 
 
 def clean_data(db_connection, run_id, run_data):
@@ -44,3 +44,4 @@ def clean_data(db_connection, run_id, run_data):
     """
     log.warning(f"CHONKY pretending to clean data for run {run_id}")
     sleep(1)
+    return [x for x in run_data]

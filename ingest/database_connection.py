@@ -212,18 +212,19 @@ class DatabaseConnection:
             data_columns = list(data[0].keys())
             insert_sql = sql.SQL(
                 """
-            insert into {schema}.{table_name}}({data_columns}) values %s;
+            insert into {schema}.{table_name}({data_columns}) values %s;
             """
             ).format(
                 schema=sql.Identifier(self._schema_name),
                 table_name=sql.Identifier(table),
                 data_columns=sql.SQL(",").join(
                     [sql.Identifier(col_name) for col_name in data_columns]
+                    + [sql.Identifier("__run_id")]
                 ),
             )
 
             template_params = [f"%({x})s" for x in data_columns]
-            template = f"({', '.join(template_params)})"
+            template = f"({', '.join(template_params)}, '{run_id}')"
 
             psycopg2.extras.execute_values(
                 self._cursor, insert_sql, data, template=template
@@ -244,18 +245,18 @@ class DatabaseConnection:
     def insert_data_current_raw(self, run_id, data):
         self.insert_data("current_raw", run_id, data)
 
-    def insert_data_current_clean(self, run_id, data_columns, data):
+    def insert_data_current_clean(self, run_id, data):
         self.insert_data("current_clean", run_id, data)
 
     def archive_data(self, source_table, dest_table, clean_after=False):
         archive_sql = sql.SQL(
             """
-        select * into  {schema}.{d_table} from {schema}.{s_table};
+        insert into {schema}.{d_table} select * from {schema}.{s_table};
         """
         ).format(
             schema=sql.Identifier(self._schema_name),
-            d_table=dest_table,
-            s_table=source_table,
+            d_table=sql.Identifier(dest_table),
+            s_table=sql.Identifier(source_table),
         )
         self._cursor.execute(archive_sql)
         self._conn.commit()

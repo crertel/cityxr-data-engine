@@ -1,5 +1,6 @@
 from time import sleep
 import logging
+import random
 
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -35,7 +36,11 @@ def fetch_data(db_connection, run_id):
     """
     log.warning(f"pretending to fetch data for run {run_id}")
     sleep(1)
-    return []
+    return [
+        {"a": random.randint(1, 10)},
+        {"a": random.randint(1, 10)},
+        {"a": random.randint(1, 10)},
+    ]
 
 
 def clean_data(db_connection, run_id, run_data):
@@ -45,3 +50,4 @@ def clean_data(db_connection, run_id, run_data):
     """
     log.warning(f"pretending to clean data for run {run_id}")
     sleep(1)
+    return run_data

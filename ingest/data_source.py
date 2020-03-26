@@ -116,8 +116,8 @@ class DataSource:
                     db_connection.insert_data_current_raw(run_id, raw_data)
 
                     db_connection.update_run(run_id, "cleaning")
-                    clean_data = clean_data(db_connection, run_id, raw_data)
-                    db_connection.insert_data_current_clean(run_id, clean_data)
+                    cleaned_data = clean_data(db_connection, run_id, raw_data)
+                    db_connection.insert_data_current_clean(run_id, cleaned_data)
 
                     db_connection.archive_raw()
                     db_connection.archive_clean()
@@ -129,7 +129,7 @@ class DataSource:
                         message=traceback.format_exc(),
                         run_id=run_id,
                     )
-                    log.error(err)
+                    log.error(traceback.format_exc())
                     pass
                 finally:
                     run_end_time = datetime.now(timezone.utc)
