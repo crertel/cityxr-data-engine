@@ -68,7 +68,7 @@ class DatabaseConnection:
         self._conn = None
         self._cursor = None
 
-    def conect_to_database(self):
+    def connect_to_database(self):
         self._conn = psycopg2.connect(PG_URL)
         self._cursor = self._conn.cursor()
 
