@@ -1,4 +1,4 @@
-from os.path import join, dirname, abspath
+from os.path import join, dirname, abspath, isdir
 from os import listdir
 from pathlib import Path
 
@@ -39,9 +39,10 @@ class PluginManager(object):
         log.warning(f"Loading sources...")
         plugins_dir = self.get_user_plugins_dir()
         for file in listdir(plugins_dir):
-            if file == "__pycache__":
-                continue
             module_path = join(plugins_dir, file)
+            if isdir(module_path):
+                continue
+
             module_name = f"{file}"
             log.warning(f"\tloading plugin {module_name} ({module_path})...")
             dsid = get_string_sha1(module_name)
