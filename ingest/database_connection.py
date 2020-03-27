@@ -1,5 +1,4 @@
 from config import PG_URL
-from pprint import pformat
 import logging
 
 import psycopg2
@@ -28,6 +27,7 @@ def build_sql_for_data_table(
         "string": "text not null",
         "boolean": "boolean not null",
         "timestamp": "timestamptz not null",
+        "date": "date not null",
     }
 
     column_decls = []
@@ -88,7 +88,6 @@ class DatabaseConnection:
         self._cursor.execute(sql)
         self._conn.commit()
         rows = self._cursor.fetchall()
-        log.error(pformat(rows))
         if not (f"datasource_{self._data_source_runtime_id}",) in rows:
             return False
         return True
