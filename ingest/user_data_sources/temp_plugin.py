@@ -1,11 +1,8 @@
 from datetime import date
 import time
-
 import csv
 from apscheduler.triggers.interval import IntervalTrigger
-
 from os.path import join, dirname, abspath
-
 import logging
 
 log = logging.getLogger(__name__)
@@ -28,7 +25,7 @@ def get_fields():
 
 def fetch_data(db_connection, run_id):
     ret = []
-    csv_path = join(script_dir, "datasets/sampleTemp.csv")
+    csv_path = join(script_dir, "../datasets/sampleTemp.csv")
     with open(csv_path) as csv_file:
         csv_reader = csv.reader(csv_file)
         for row in csv_reader:

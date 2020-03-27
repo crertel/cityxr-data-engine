@@ -12,7 +12,7 @@ def schedule():
     Gets the scheduled run for the data source.
     Returns the scheduled time for the data source.
     """
-    return IntervalTrigger(seconds=20)
+    return IntervalTrigger(seconds=7)
 
 
 def init(runtime_id, name):

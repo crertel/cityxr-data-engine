@@ -14,7 +14,7 @@ def schedule():
     Returns the scheduled time for the data source.
     """
     # lolwut
-    return IntervalTrigger(seconds=5)
+    return IntervalTrigger(seconds=6)
 
 
 def init(runtime_id, name):
