@@ -28,6 +28,7 @@ def build_sql_for_data_table(
         "string": "text not null",
         "boolean": "boolean not null",
         "timestamp": "timestamptz not null",
+        "date": "date not null",
     }
 
     column_decls = []

@@ -82,7 +82,7 @@ class DataSource:
         schedule_trigger = schedule()
 
         db_connection = DatabaseConnection(runtime_id)
-        db_connection.conect_to_database()
+        db_connection.connect_to_database()
 
         if not db_connection.check_if_schema_exists():
             db_connection.schema_setup(data_source_fields)
