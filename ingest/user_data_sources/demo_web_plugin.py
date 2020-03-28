@@ -1,14 +1,10 @@
-import time
 from apscheduler.triggers.interval import IntervalTrigger
-from os.path import join, dirname, abspath
+
 import logging
 import requests
 from bs4 import BeautifulSoup
 
 log = logging.getLogger(__name__)
-
-script_path = abspath(__file__)
-script_dir = dirname(script_path)
 
 
 def schedule():
@@ -22,9 +18,9 @@ def init(runtime_id, name):
 def get_fields():
     return {
         "station": "string",
-        "Route": "string",
-        "Address": "string",
-        "Travel Time From Transit Center": "string",
+        "route": "string",
+        "address": "string",
+        "travel_time_from_transit_center": "string",
     }
 
 
@@ -38,6 +34,8 @@ def fetch_data(db_connection, run_id):
     table = soup.find(class_="table table-bordered table-striped")
     station_table = table.find("tbody")
 
+    log.warning(f"fetching metro data {run_id}")
+
     for row in station_table.find_all("tr"):
         name = row.contents[1]
         route = row.contents[3]
@@ -45,14 +43,13 @@ def fetch_data(db_connection, run_id):
         ttime = row.contents[7]
         items.append(
             {
-                "Station": name.contents[0].strip(),
-                "Direction": route.contents[0].strip(),
-                "Location": addr.contents[0].strip(),
-                "Travel Time": ttime.contents[0].strip(),
+                "station": name.contents[0].strip(),
+                "route": route.contents[0].strip(),
+                "address": addr.contents[0].strip(),
+                "travel_time_from_transit_center": ttime.contents[0].strip(),
             }
         )
     return items
-    log.warning(f"fetching metro data {run_id}")
 
 
 def clean_data(db_connection, run_id, run_data):
