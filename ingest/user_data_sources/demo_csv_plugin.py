@@ -24,7 +24,7 @@ def get_fields():
 
 
 def fetch_data(db_connection, run_id):
-    ret = []
+    items = []
     csv_path = join(script_dir, "../datasets/sampleTemp.csv")
     with open(csv_path) as csv_file:
         csv_reader = csv.reader(csv_file)
@@ -33,8 +33,8 @@ def fetch_data(db_connection, run_id):
             row_date = date(year=pdate.tm_year, month=pdate.tm_mon, day=pdate.tm_mday)
             row_high = float(row[1])
             row_low = float(row[2])
-            ret.append({"date": row_date, "high": row_high, "low": row_low})
-    return ret
+            items.append({"date": row_date, "high": row_high, "low": row_low})
+    return items
 
 
 def clean_data(db_connection, run_id, run_data):
