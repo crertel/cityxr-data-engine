@@ -34,8 +34,6 @@ def fetch_data(db_connection, run_id):
     table = soup.find(class_="table table-bordered table-striped")
     station_table = table.find("tbody")
 
-    log.warning(f"fetching metro data {run_id}")
-
     for row in station_table.find_all("tr"):
         name = row.contents[1]
         route = row.contents[3]

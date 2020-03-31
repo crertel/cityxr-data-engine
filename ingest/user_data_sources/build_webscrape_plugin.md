@@ -1,13 +1,12 @@
-# Creating a CSV-Based Plugin
+# Creating a Web-Based Plugin Using BeautifulSoup
 
 Begin with your essential imports:
 ```
 from apscheduler.triggers.interval import IntervalTrigger
-import csv 
+from bs4 import BeautifulSoup
 import from os.path import join, dirname, abspath
 import logging
 ```
-
 If your data includes dates or times, you will want to import utilities for those as well:
 ```
 import time
@@ -61,23 +60,31 @@ return {"value1": "date", "value2": "decimal", "value3": "string"}
 **fetch_data()**
 
 
-The `fetch_data()` module is where your data will be fetched and inserted into the database. With your csv file open, begin working row by row. For each row, insert each datapoint into a variable with the correct formatting. At the end of the row, append each datapoint into a dictionary, in the same order you declared them in the `get_fields()` module. Once the dictionary has received each row, return it to be entered into the database.
+The `fetch_data()` module is where your data will be fetched and inserted into the database. Once you've connected to your webpage, begin working row by row. For each row, insert each datapoint into a variable with the correct formatting. At the end of the row, append each datapoint into a dictionary, in the same order you declared them in the `get_fields()` module. Once the dictionary has received each row, return it to be entered into the database.
+
+The `fetch_data()` module is where your data will be fetched and inserted into the database. Beging by creating a variable to connect to your targe webpage. Within the source code of the page, find the tag containing all of your data- you may need to use several variables to specify the exact location. 
 
 ```
+page = requests.get("https://www.example.com/")
+soup = BeautifulSoup(page.text, "html.parser")
+
 items = []
-    csv_path = join(script_dir, "../datasets/filename.csv")
-    with open(csv_path) as csv_file:
-        csv_reader = csv.reader(csv_file)
-        for row in csv_reader:
-            pdate = time.strptime(row[0], "%d/%m/%Y")
-            v1 = date(year=pdate.tm_year, month=pdate.tm_mon, day=pdate.tm_mday)
-            v2 = float(row[1])
-            v3 = row[3]
-            items.append({"value1": v1, "value2": v2, "value3": v3})
-    return items
+
+table = soup.find(class_="ClassName")
+
+for row in table.find_all("tr"):
+    v1 = row.contents[1]
+    v2 = row.contents[3]
+    v3 = row.contents[5]
+    items.append({
+        "value1": v1.contents[0].strip(),
+        "value2": v2.contents[0].strip(),
+        "value3": v3.contents[0].strip(),
+        })
+return items
 ```
 
-Note that dates require an additional step- first we receive the data from the file appropriately, and then format it into a way the database can understand.
+In this example, we would pull everything in the "ClassName" tag, and then from that pull each instance of the "tr" tag. We'll remove all outer tags as we receive each item, and make one more pass as they are appended to the dictionary to make sure there's no additional tags or whitespace.
 
 ---
 
