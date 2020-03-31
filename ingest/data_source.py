@@ -63,7 +63,6 @@ class DataSource:
             # handle state querying messages, whatever else
 
     def do_run(name, runtime_id, module_path, parent_pipe):
-        log.warning("loading from " + module_path)
         spec = importlib.util.spec_from_file_location(f"plugin_{name}", module_path)
         plugin_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(plugin_module)
@@ -73,8 +72,6 @@ class DataSource:
         fetch_data = plugin_module.fetch_data
         clean_data = plugin_module.clean_data
 
-        log.error(f"rid {runtime_id} name {name}")
-
         init(runtime_id, name)
 
         next_trigger_time = None
@@ -82,14 +79,11 @@ class DataSource:
         schedule_trigger = schedule()
 
         db_connection = DatabaseConnection(runtime_id)
-        db_connection.conect_to_database()
+        db_connection.connect_to_database()
 
         if not db_connection.check_if_schema_exists():
             db_connection.schema_setup(data_source_fields)
 
-        # while <pump messages queue>:
-        #
-        log.error("started data source")
         while 1:
             # if we have messages from the main process, handle them
             while parent_pipe.poll() is True:
@@ -135,7 +129,6 @@ class DataSource:
                     run_end_time = datetime.now(timezone.utc)
                     run_duration = run_end_time - run_start_time
 
-                    # TODO record run statistics
                     if run_succeeded:
                         log.error(f"Run #{run_id} succeeded in #{run_duration}")
                         db_connection.end_run(run_id, "succeeded")

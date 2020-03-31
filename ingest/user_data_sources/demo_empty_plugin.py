@@ -1,11 +1,4 @@
-from time import sleep
-import logging
-import random
-
 from apscheduler.triggers.interval import IntervalTrigger
-
-
-log = logging.getLogger(__name__)
 
 
 def schedule():
@@ -13,8 +6,7 @@ def schedule():
     Gets the scheduled run for the data source.
     Returns the scheduled time for the data source.
     """
-    # lolwut
-    return IntervalTrigger(seconds=5)
+    return IntervalTrigger(seconds=6)
 
 
 def init(runtime_id, name):
@@ -34,13 +26,7 @@ def fetch_data(db_connection, run_id):
     Fetches the data for a run.
     Will insert data along with run into the DB.
     """
-    log.warning(f"pretending to fetch data for run {run_id}")
-    sleep(1)
-    return [
-        {"a": random.randint(1, 10)},
-        {"a": random.randint(1, 10)},
-        {"a": random.randint(1, 10)},
-    ]
+    return []
 
 
 def clean_data(db_connection, run_id, run_data):
@@ -48,6 +34,4 @@ def clean_data(db_connection, run_id, run_data):
     Cleans up the data for a run.
     Will insert the data from a run into the DB.
     """
-    log.warning(f"pretending to clean data for run {run_id}")
-    sleep(1)
     return run_data
