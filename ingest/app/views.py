@@ -14,8 +14,17 @@ def root():
 
 @app.route("/sources/<source_id>")
 def source_details(source_id):
-    plugin = PluginManager().get_plugin(source_id)
-    return render_template("source.html.j2", ds=plugin)
+    ds = PluginManager().get_plugin(source_id)
+    ds_run_logs = PluginManager().get_run_logs_for_plugin(source_id=source_id, limit=10)
+    return render_template("source.html.j2", ds=ds, ds_run_log=ds_run_logs)
+
+
+@app.route("/sources/<source_id>/runs/<run_id>/logs")
+def run_log_details(source_id, run_id):
+    run_log = PluginManager().get_run_logs_for_plugin_run(
+        source_id=source_id, run_id=run_id, limit=10
+    )
+    return render_template("logs.html.j2", log_messages=run_log)
 
 
 @app.route("/dashboard")
