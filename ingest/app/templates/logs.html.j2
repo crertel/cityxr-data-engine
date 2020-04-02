@@ -1,0 +1,32 @@
+{%- extends "layout.html.j2" %}
+
+
+{% block content %}
+<div class="container">
+  <div class="jumbotron">
+    <h2>Log Details</h2>
+    <small> <a href="/">Back to dashboard...</a> </small>
+  </div>
+
+  <h3>Logs (last 200)</h3>
+  <table class="table">
+    <thead>
+        <tr>
+            <th>Time</th>
+            <th>Severity</th>
+            <th>Message</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for (time, severity, message ) in log_messages %}
+        <tr>
+        <td>{{time.isoformat().strip()}}</td>
+        <td>{{severity}}</td>
+        <td>{{message}}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{%- endblock %}
