@@ -50,3 +50,13 @@ clean_data()
 
 For more information on building plugins, checkout our guides on building CSV- or Web-based dataset plugins.
 
+---
+
+**View the Datatables**
+
+From the terminal, enter `bin/connect_to_db` to open the database. To view a specific table, use `Select * from <datasource>;` The datasource name should be in the format of `datasource_xxx.schemaName;`. When entering the command, hit `Tab` after "datasource" to see the list of datasource options available. Schema name options are `archive_clean`, `archive_raw`, `current_clean`, `current_raw`, `log`, and `runs`.
+
+```
+//Example:
+# select * from datasource_cac797880afab020b1093980e2d323acba2d0542.current_raw;
+```
