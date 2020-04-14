@@ -31,3 +31,10 @@ def run_log_details(source_id, run_id):
 def dashboard():
     plugins = PluginManager().get_plugins()
     return render_template("dashboard.html.j2", plugins=plugins)
+
+
+@app.route("/sources/<source_id>/purge_and_reload")
+def restart_button(source_id):
+    ds = PluginManager().get_plugin(source_id)
+    ds.retstart(purge_data=True)
+    return render_template("reset.html.j2")
