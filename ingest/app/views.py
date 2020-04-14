@@ -1,7 +1,6 @@
 from app import app
 from flask import url_for, redirect, render_template, flash, g, session
 from plugin_manager import PluginManager
-from reload_and_purge import Reload
 
 import logging
 
@@ -34,7 +33,8 @@ def dashboard():
     return render_template("dashboard.html.j2", plugins=plugins)
 
 
-@app.route("/sources/<run_id>/purge_and_reload")
-def restart_button(source_id, run_id):
-    Reload(run_id=run_id, source_id=source_id)
+@app.route("/sources/<source_id>/purge_and_reload")
+def restart_button(source_id):
+    ds = PluginManager().get_plugin(source_id)
+    ds.retstart(purge_data=True)
     return render_template("reset.html.j2")

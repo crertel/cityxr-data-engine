@@ -33,17 +33,17 @@
         <td>{{pinstance.next_trigger_time.isoformat()}}</td>
         <td>
           <!-- Button trigger modal -->
-          <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#resetModal">
+          <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#resetModal-{{pid}}">
           Reset
           </button>
 
 
           <!-- Modal -->
-          <div class="modal fade" id="resetModal" tabindex="-1" role="dialog" aria-labelledby="resetModalLabel" aria-hidden="true">
+          <div class="modal fade" id="resetModal-{{pid}}" tabindex="-1" role="dialog" aria-labelledby="resetModalLabel" aria-hidden="true">
             <div class="modal-dialog" role="document">
               <div class="modal-content">
                 <div class="modal-header">
-                  <h3 class="modal-title" id="resetModalLabel">Are you sure?</h5>
+                  <h3 class="modal-title" id="resetModalLabel">Are you sure?</h3>
                 </div>
                 <div class="modal-body">
                   Resetting this datasource will reload the plugin and erase all previously collected data. This 
@@ -52,6 +52,7 @@
                 <div class="modal-footer">
                   
                   <form action="/sources/{{pid}}/purge_and_reload">
+                    <input type="hidden" name="source_id" value="{{pid}}"></input>
                     <button type="button" class="btn btn-dark" data-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary mb-2"> Purge and Reload</button>
                   </form>

@@ -40,8 +40,12 @@ class DataSource:
         )
         self._process.start()
 
-    def retstart(self):
+    def retstart(self, purge_data=False):
         self._process.kill()
+        if purge_data:
+            dbc = DatabaseConnection(self.runtime_id)
+            dbc.connect_to_database()
+            dbc.purge_datasource_schema()
         (child_pipe, parent_pipe) = Pipe(duplex=True)
         self._child_pipe = child_pipe
         self._start_process(
