@@ -7,15 +7,69 @@
     <h1>Ingest Dashboard</h1>
   </div>
 
-  <ul>
+
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th scope="col">Filename</th>
+        <th scope="col">Runtime ID</th>
+        <th scope="col">State</th>
+        <th scope="col">Started At</th>
+        <th scope="col">Next Runtime</th>
+        <th scope="col"></th>
+      </tr>
+    </thead>
+    <tbody>
       {% for pid, pinstance in plugins.items() %}
-      <li>
-        <a href="/sources/{{pid}}">
-        {{pinstance.name}} -- {{ pid }} -- {{pinstance.state}} -- {{pinstance.started_at.isoformat()}}
-        <br> next runtime: {{pinstance.next_trigger_time.isoformat()}}
-        </a>
-      </li>
+      <tr>
+        <th scope="row">
+          <a href="/sources/{{pid}}">
+          {{pinstance.name}}
+          </a>
+        </th>
+        <td>{{ pid }}</td>
+        <td>{{pinstance.state}}</td>
+        <td>{{pinstance.started_at.isoformat()}}</td>
+        <td>{{pinstance.next_trigger_time.isoformat()}}</td>
+        <td>
+          <!-- Button trigger modal -->
+          <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#resetModal-{{pid}}">
+          Reset
+          </button>
+
+
+          <!-- Modal -->
+          <div class="modal fade" id="resetModal-{{pid}}" tabindex="-1" role="dialog" aria-labelledby="resetModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h3 class="modal-title" id="resetModalLabel">Are you sure?</h3>
+                </div>
+                <div class="modal-body">
+                  Resetting this datasource will reload the plugin and erase all previously collected data. This 
+                  action is irreversable. Would you like to continue?
+                </div>
+                <div class="modal-footer">
+                  
+                  <form action="/sources/{{pid}}/purge_and_reload">
+                    <input type="hidden" name="source_id" value="{{pid}}"></input>
+                    <button type="button" class="btn btn-dark" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary mb-2"> Purge and Reload</button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </td>
+      </tr>
       {% endfor %}
-  </ul>
+    </tbody>
+  </table>
+
+
+
 </div>
 {%- endblock %}
+
+//  Name  | ID  | State | Started At  | Next Runtime

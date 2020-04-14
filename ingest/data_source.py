@@ -40,8 +40,12 @@ class DataSource:
         )
         self._process.start()
 
-    def retstart(self):
+    def retstart(self, purge_data=False):
         self._process.kill()
+        if purge_data:
+            dbc = DatabaseConnection(self.runtime_id)
+            dbc.connect_to_database()
+            dbc.purge_datasource_schema()
         (child_pipe, parent_pipe) = Pipe(duplex=True)
         self._child_pipe = child_pipe
         self._start_process(
@@ -105,6 +109,12 @@ class DataSource:
                 db_connection.empty_current_raw_table()
                 db_connection.empty_current_clean_table()
                 try:
+                    db_connection.log(
+                        time=datetime.now(timezone.utc),
+                        severity="info",
+                        message="started run",
+                        run_id=run_id,
+                    )
                     db_connection.update_run(run_id, "fetching")
                     raw_data = fetch_data(db_connection, run_id)
                     db_connection.insert_data_current_raw(run_id, raw_data)
@@ -115,6 +125,12 @@ class DataSource:
 
                     db_connection.archive_raw()
                     db_connection.archive_clean()
+                    db_connection.log(
+                        time=datetime.now(timezone.utc),
+                        severity="info",
+                        message="finished run",
+                        run_id=run_id,
+                    )
                     run_succeeded = True
                 except Exception as err:
                     db_connection.log(
