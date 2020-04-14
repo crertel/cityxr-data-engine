@@ -86,4 +86,9 @@ Note that dates require an additional step- first we receive the data from the f
 
 **clean_data()**
 
+<<<<<<< HEAD:ingest/plugins/docs/build_csv_plugin.md
+Once all of the raw data has been received, the cleaning process can begin. Similar to the `fetch_data()` process, we will be receiving the data one row at a time, inserting into variables and appending to a dictionary. During this process is when any formatting or cleanup can be done. Once this has completed, return the data one final time.
+
+=======
 `¯\_(ツ)_/¯`
+>>>>>>> master:ingest/user_data_sources/build_csv_plugin.md
