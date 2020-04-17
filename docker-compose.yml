@@ -50,11 +50,29 @@ services:
       - backend
       - frontend
 
+  superset:
+    image: abhioncbr/docker-superset:latest
+    restart: always
+    environment:
+      SUPERSET_ENV: local
+      #GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS}
+    depends_on:
+      - db
+    ports:
+      - 8088:8088
+      #- 5003:5555
+    volumes:
+      - ../superset/config/:/home/superset/config/
+    networks:
+      - backend
+      - frontend
+
 networks:
   frontend:
     driver: bridge
   backend:
     driver: bridge
+    internal: true
 
 volumes:
   postgres_data:
