@@ -2,4 +2,4 @@
 
 set -eou pipefail
 
-python src/app.py
+python run.py

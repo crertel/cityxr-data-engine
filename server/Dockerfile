@@ -4,7 +4,7 @@ FROM base as builder
 
 COPY requirements.txt /requirements.txt
 RUN pip install -r /requirements.txt
-COPY src /app/src
+COPY . /app
 COPY docker-entry.sh /app/docker-entry.sh
 WORKDIR /app
 CMD ["./docker-entry.sh"]

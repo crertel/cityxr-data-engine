@@ -44,11 +44,21 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    volumes: ["./server:/app"]
+
     ports:
       - "5002:80"
     networks:
       - backend
       - frontend
+    environment:
+      - DEBUG=true
+      - LISTEN_PORT=80
+      - PG_HOST=db
+      - PG_USER=cxrdev
+      - PG_PASSWORD=cxrdev
+      - PG_DB=cxr_dev
+      - PG_PORT=5432
 
 networks:
   frontend:
