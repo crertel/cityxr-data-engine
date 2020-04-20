@@ -1,4 +1,11 @@
-cat << EOF > ingest/user_data_sources/webscrape_template.py
+#! /usr/bin/env bash
+
+set -eou pipefail
+
+echo -n "Enter filename and press [ENTER]: "
+read name
+
+cat << EOF > ingest/user_data_sources/$name.py
 from apscheduler.triggers.interval import IntervalTrigger
 import logging
 import requests

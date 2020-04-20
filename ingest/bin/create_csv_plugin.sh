@@ -1,4 +1,11 @@
-cat << EOF > ingest/user_data_sources/csv_template.py
+#! /usr/bin/env bash
+
+set -eou pipefail
+
+echo -n "Enter filename and press [ENTER]: "
+read name
+
+cat << EOF > ingest/user_data_sources/$name.py
 import csv
 from apscheduler.triggers.interval import IntervalTrigger
 from os.path import join, dirname, abspath

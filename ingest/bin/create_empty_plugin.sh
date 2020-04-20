@@ -1,5 +1,11 @@
-cat << EOF > ingest/user_data_sources/empty_bin.py
+#! /usr/bin/env bash
 
+set -eou pipefail
+
+echo -n "Enter filename and press [ENTER]: "
+read name
+
+cat << EOF > ingest/user_data_sources/$name.py
 from apscheduler.triggers.interval import IntervalTrigger
 
 
@@ -37,5 +43,4 @@ def clean_data(db_connection, run_id, run_data):
     Will insert the data from a run into the DB.
     """
     return run_data
-
 EOF
