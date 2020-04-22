@@ -1,5 +1,6 @@
 from config import PG_URL
 import logging
+import json
 
 import psycopg2
 from psycopg2 import sql
@@ -13,23 +14,27 @@ log = logging.getLogger(__name__)
 
 # Every data source has its own schema.
 # Inside that schema are tables for:
+# - Data source config information
 # - Data source logs
 # - Data source run history
 # - Data source historical raw data intake
 # - Data source current raw data intake
 # - Data source historical cleaning
 # - Data source current cleaning
+
+DATATYPES = {
+    "decimal": "double precision not null",
+    "string": "text not null",
+    "boolean": "boolean not null",
+    "timestamp": "timestamptz not null",
+    "date": "date not null",
+    "json": "jsonb",
+}
+
+
 def build_sql_for_data_table(
     schema_name, table_name, table_desecription, is_unlogged=False
 ):
-    DATATYPES = {
-        "decimal": "double precision not null",
-        "string": "text not null",
-        "boolean": "boolean not null",
-        "timestamp": "timestamptz not null",
-        "date": "date not null",
-    }
-
     column_decls = []
     for column_name, data_type in table_desecription.items():
         column_data_decl = DATATYPES[data_type]
@@ -96,10 +101,31 @@ class DatabaseConnection:
         # create the schema to hold things
         create_ds_schema_sql = sql.SQL(
             """
-            create schema {};
+            create schema {schema};
         """
-        ).format(sql.Identifier(self._schema_name))
+        ).format(schema=sql.Identifier(self._schema_name))
         self._cursor.execute(create_ds_schema_sql)
+        self._conn.commit()
+
+        # create config schema
+        creats_ds_config_sql = sql.SQL(
+            """
+        create table {schema}.config (
+            id uuid primary key default uuid_generate_v4(),
+            created_at timestamptz not null default now(),
+            data_config jsonb not null,
+            is_disabled boolean not null default false
+        );
+        """
+        ).format(schema=sql.Identifier(self._schema_name))
+        self._cursor.execute(creats_ds_config_sql)
+        self._conn.commit()
+        update_ds_config_sql = sql.SQL(
+            """
+        insert into {schema}.config (data_config) values (%s);
+        """
+        ).format(schema=sql.Identifier(self._schema_name))
+        self._cursor.execute(update_ds_config_sql, (json.dumps(fields),))
         self._conn.commit()
 
         # create log schema
