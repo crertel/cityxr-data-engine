@@ -8,4 +8,4 @@ log = logging.getLogger()
 
 @app.route("/heartbeat")
 def heartbeat():
-    return ("Up!", 200)
+    return ({"heartbeat": "ok"}, 200)

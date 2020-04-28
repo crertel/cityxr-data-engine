@@ -1,0 +1,26 @@
+openapi: "3.0.3"
+
+info:
+  title: "CityXR Server API"
+  version: "1.0.0"
+
+servers:
+  - url: /v1
+    description: Version 1 of the api.
+
+paths:
+  /heartbeat:
+    get:
+      operationId: app.views.heartbeat
+      summary: Gets heartbeat information, server uptime, etc.
+      responses:
+        "200":
+          description: |-
+            200 response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  heartbeat:
+                    type: string

@@ -1,6 +1,6 @@
-from app import app
 from config import LISTEN_PORT, DEBUG, PG_URL
 import psycopg2
+import connexion
 
 
 db_conn = psycopg2.connect(PG_URL)
@@ -14,8 +14,9 @@ db_conn.commit()
 db_cursor.close()
 db_conn.close()
 
-
+app = connexion.FlaskApp(__name__)
 if DEBUG:
-    app.jinja_env.auto_reload = True
-    app.config["TEMPLATES_AUTO_RELOAD"] = True
+    app.app.jinja_env.auto_reload = True
+    app.app.config["TEMPLATES_AUTO_RELOAD"] = True
+app.add_api("cxr-server.yaml")
 app.run(host="0.0.0.0", debug=DEBUG, port=LISTEN_PORT)
