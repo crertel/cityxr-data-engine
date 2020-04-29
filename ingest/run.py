@@ -17,6 +17,43 @@ create extension if not exists "uuid-ossp";
 """
 )
 db_conn.commit()
+db_cursor.execute(
+    """
+create schema if not exists "cxr_db";
+"""
+)
+db_conn.commit()
+
+db_cursor.execute("drop function if exists cxr_db.get_available_datasources;")
+db_conn.commit()
+
+db_cursor.execute(
+    """
+create or replace function cxr_db.get_available_datasources()
+returns table (
+    datasource_id uuid,
+    created_at timestamptz,
+    config jsonb,
+    is_disabled boolean
+)
+as $BODY$
+declare
+    sname text;
+begin
+    for sname in
+      select schema_name from information_schema.schemata where schema_name like 'datasource_%'
+    loop
+        return query execute format( 'select * from %I.config', sname );
+
+    end loop;
+    return;
+end
+$BODY$ language plpgsql stable;
+
+"""
+)
+db_conn.commit()
+
 db_cursor.close()
 db_conn.close()
 
