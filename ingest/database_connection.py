@@ -87,15 +87,14 @@ class DatabaseConnection:
         self._conn.commit()
 
     def check_if_schema_exists(self):
-        sql = """
-            select schema_name from information_schema.schemata;
+        schema_name = f"datasource_{self._data_source_runtime_id}"
+        schema_exist_sql = """
+            select count(*) from information_schema.schemata where schema_name = %s;
         """
-        self._cursor.execute(sql)
+        self._cursor.execute(schema_exist_sql, (schema_name,))
         self._conn.commit()
         rows = self._cursor.fetchall()
-        if not (f"datasource_{self._data_source_runtime_id}",) in rows:
-            return False
-        return True
+        return rows[0][0] != 0
 
     def schema_setup(self, fields):
         # create the schema to hold things
