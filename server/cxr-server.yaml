@@ -9,6 +9,19 @@ servers:
     description: Version 1 of the api.
 
 paths:
+  /datasources:
+    get:
+      operationId: app.views.get_available_data_sources
+      summary: Gets the available datasources
+      responses:
+        "200":
+          description: |-
+            200 response
+          content:
+            application/json:
+              schema:
+                type: object
+
   /heartbeat:
     get:
       operationId: app.views.heartbeat
