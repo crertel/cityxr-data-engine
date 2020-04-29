@@ -52,7 +52,7 @@ $BODY$ language plpgsql stable;
 
 """
 )
-
+db_conn.commit()
 
 db_cursor.close()
 db_conn.close()
