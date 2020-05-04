@@ -41,8 +41,8 @@ class DatabaseConnection:
         ret = {}
         for (datasource_id, created_at, config, is_disabled) in rows:
             ret[datasource_id.__str__()] = {
-                "created_at": created_at,
-                "is_disabled": is_disabled,
+                "createdAt": created_at,
+                "isDisabled": is_disabled,
                 "config": config,
             }
         return ret
