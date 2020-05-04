@@ -31,7 +31,7 @@ db_cursor.execute(
     """
 create or replace function cxr_db.get_available_datasources()
 returns table (
-    datasource_id uuid,
+    datasource_id text,
     created_at timestamptz,
     config jsonb,
     is_disabled boolean
