@@ -23,4 +23,8 @@ def get_available_data_sources():
 
 
 def get_latest_data_for_source(datasource_id):
-    return ({"error": f"can't find datasource {datasource_id}"}, 404)
+    res = db_connection.get_most_recent_run_for_datasource(datasource_id)
+    if res is None:
+        return ({"error": f"can't find datasource {datasource_id}"}, 404)
+    else:
+        return ({"res": res}, 200)
