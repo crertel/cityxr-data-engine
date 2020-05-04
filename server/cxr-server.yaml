@@ -9,10 +9,42 @@ servers:
     description: Version 1 of the api.
 
 paths:
+  /data/{datasource_id}/latest:
+    get:
+      operationId: app.views.get_latest_data_for_source
+      summary: Gets the latest data points from the source.
+      parameters:
+        - name: datasource_id
+          in: path
+          description: UUID of the datasource.
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: |-
+            Data object with the latest values from the source.
+          content:
+            application/json:
+              schema:
+                type: object
+        "404":
+          description: |-
+            Error if the given data source doesn't exist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Message about missing data source."
+
   /datasources:
     get:
       operationId: app.views.get_available_data_sources
-      summary: Gets the available datasources
+      summary: Gets the available datasources.
       responses:
         "200":
           description: |-
@@ -21,6 +53,23 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    createdAt:
+                      type: string
+                      description: |-
+                        RFC3339 timestamp of when the datasource was booted.
+                    isDisabled:
+                      type: boolean
+                      description: |-
+                        Whether or not the datasource is currently running.
+                    config:
+                      type: object
+                      additionalProperties:
+                        type: string
+                        description: |-
+                          Datatype of the column of the datasource.
 
   /heartbeat:
     get:

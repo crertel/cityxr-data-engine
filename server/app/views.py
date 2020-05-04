@@ -20,3 +20,7 @@ def heartbeat():
 
 def get_available_data_sources():
     return (db_connection.get_available_datasources(), 200)
+
+
+def get_latest_data_for_source(datasource_id):
+    return ({"error": f"can't find datasource {datasource_id}"}, 404)
