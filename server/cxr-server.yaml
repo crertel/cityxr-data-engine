@@ -29,11 +29,15 @@ paths:
       responses:
         "200":
           description: |-
-            200 response
+            Uptime and boot time about the server.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  heartbeat:
+                  bootTime:
                     type: string
+                    description: "RFC3339 time server was started."
+                  uptime:
+                    type: number
+                    description: "Uptime in seconds of server."
