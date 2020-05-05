@@ -26,5 +26,25 @@ def get_latest_data_for_source(datasource_id):
     res = db_connection.get_most_recent_run_for_datasource(datasource_id)
     if res is None:
         return ({"error": f"can't find datasource {datasource_id}"}, 404)
+    elif res is False:
+        return ({"error": f"no finished runs for datasource {datasource_id}"}, 404)
     else:
-        return ({"res": res}, 200)
+        return (res, 200)
+
+
+def get_historical_data_for_source(datasource_id, start_time, end_time):
+    res = db_connection.get_data_for_datasource_for_time_range(
+        datasource_id=datasource_id, start_time=start_time, end_time=end_time
+    )
+    if res is None:
+        return ({"error": f"can't find datasource {datasource_id}"}, 404)
+    elif res is False:
+        return (
+            {
+                "error": f"no finished runs for datasource {datasource_id} on timeframe {start_time} to {end_time} "
+            },
+            404,
+        )
+    else:
+        return (res, 200)
+
