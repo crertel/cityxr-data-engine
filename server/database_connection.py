@@ -28,6 +28,99 @@ class DatabaseConnection:
         self._conn = psycopg2.connect(PG_URL)
         self._cursor = self._conn.cursor()
 
+    def get_most_recent_run_for_datasource(self, datasource_id):
+        if not self.check_if_schema_exists(datasource_id):
+            return None
+
+        schema_name = f"datasource_{datasource_id}"
+
+        get_most_recent_run_sql = sql.SQL(
+            """
+            select started_at,ended_at, id as run_id from  {schema}.runs
+            where state = 'succeeded'
+            order by started_at desc
+            limit 1;
+        """
+        ).format(schema=sql.Identifier(schema_name))
+        self._cursor.execute(get_most_recent_run_sql)
+        self._conn.commit()
+        rows = self._cursor.fetchall()
+        if len(rows) == 0:
+            return False
+        (run_start, run_end, run_id) = rows[0]
+
+        run_fetch_sql = sql.SQL(
+            """
+            select * from {schema}.archive_clean as data
+            where data.__run_id = %s;
+        """
+        ).format(schema=sql.Identifier(schema_name))
+
+        self._cursor.execute(run_fetch_sql, (run_id,))
+        self._conn.commit()
+        return {
+            "data": self._cursor.fetchall(),
+            "datasourceId": datasource_id,
+            "runId": run_id,
+            "runStart": run_start,
+            "runEnd": run_end,
+            "columns": [desc[0] for desc in self._cursor.description],
+        }
+
+    def get_data_for_datasource_for_time_range(
+        self, datasource_id, start_time, end_time
+    ):
+        if not self.check_if_schema_exists(datasource_id):
+            return None
+
+        schema_name = f"datasource_{datasource_id}"
+
+        get_run_data = sql.SQL(
+            """
+            select started_at,ended_at, id as run_id from  {schema}.runs
+            where state = 'succeeded'
+            and tstzrange(started_at,ended_at,'[)') && tstzrange({started_at},{ended_at})
+            order by started_at desc;
+        """
+        ).format(
+            schema=sql.Identifier(schema_name),
+            started_at=sql.Literal(start_time),
+            ended_at=sql.Literal(end_time),
+        )
+        self._cursor.execute(get_run_data)
+        self._conn.commit()
+        rows = self._cursor.fetchall()
+        if len(rows) == 0:
+            return False
+
+        runs = []
+        for (run_start, run_end, run_id) in rows:
+            run_fetch_sql = sql.SQL(
+                """
+                select * from {schema}.archive_clean as data
+                where data.__run_id = %s;
+            """
+            ).format(schema=sql.Identifier(schema_name))
+
+            self._cursor.execute(run_fetch_sql, (run_id,))
+            self._conn.commit()
+            runs.append(
+                {
+                    "runId": run_id,
+                    "runStart": run_start,
+                    "runEnd": run_end,
+                    "columns": [desc[0] for desc in self._cursor.description],
+                    "data": self._cursor.fetchall(),
+                }
+            )
+
+        return {
+            "runs": runs,
+            "fetchRangeStart": start_time,
+            "fetchRangeEnd": end_time,
+            "datasourceId": datasource_id,
+        }
+
     def get_available_datasources(self):
         datasources_sql = """
         select
@@ -41,14 +134,14 @@ class DatabaseConnection:
         ret = {}
         for (datasource_id, created_at, config, is_disabled) in rows:
             ret[datasource_id.__str__()] = {
-                "created_at": created_at,
-                "is_disabled": is_disabled,
+                "createdAt": created_at,
+                "isDisabled": is_disabled,
                 "config": config,
             }
         return ret
 
-    def check_if_schema_exists(self, schema_runtime_id):
-        schema_name = f"datasource_{schema_runtime_id}"
+    def check_if_schema_exists(self, datasource_runtime_id):
+        schema_name = f"datasource_{datasource_runtime_id}"
         schema_exist_sql = """
             select count(*) from information_schema.schemata where schema_name = %s;
         """

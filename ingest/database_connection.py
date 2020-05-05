@@ -40,7 +40,7 @@ def build_sql_for_data_table(
         column_data_decl = DATATYPES[data_type]
         column_decls.append(
             sql.SQL("{column_name} {column_data_decl}").format(
-                column_name=sql.Identifier(column_name),
+                column_name=sql.Identifier(column_name.lower()),
                 column_data_decl=sql.SQL(column_data_decl),
             )
         )
@@ -97,6 +97,7 @@ class DatabaseConnection:
         return rows[0][0] != 0
 
     def schema_setup(self, fields):
+        fields = {k.lower(): v for k, v in fields.items()}
         # create the schema to hold things
         create_ds_schema_sql = sql.SQL(
             """
@@ -110,7 +111,7 @@ class DatabaseConnection:
         creats_ds_config_sql = sql.SQL(
             """
         create table {schema}.config (
-            id uuid primary key default uuid_generate_v4(),
+            id text primary key,
             created_at timestamptz not null default now(),
             data_config jsonb not null,
             is_disabled boolean not null default false
@@ -121,10 +122,12 @@ class DatabaseConnection:
         self._conn.commit()
         update_ds_config_sql = sql.SQL(
             """
-        insert into {schema}.config (data_config) values (%s);
+        insert into {schema}.config (id, data_config) values (%s,%s);
         """
         ).format(schema=sql.Identifier(self._schema_name))
-        self._cursor.execute(update_ds_config_sql, (json.dumps(fields),))
+        self._cursor.execute(
+            update_ds_config_sql, (self._data_source_runtime_id, json.dumps(fields),)
+        )
         self._conn.commit()
 
         # create log schema

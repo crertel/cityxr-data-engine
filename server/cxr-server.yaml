@@ -9,10 +9,153 @@ servers:
     description: Version 1 of the api.
 
 paths:
+  /data/{datasource_id}/data:
+    get:
+      operationId: app.views.get_historical_data_for_source
+      summary: Gets any successful runs of data overlapping a provided start and end interval.
+      parameters:
+        - in: path
+          name: datasource_id
+          description: ID of the datasource.
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: start_time
+          description: |-
+            Starting time, inclusive, in RFC3339 format of data period to fetch. Must be before or at end_time.
+          required: true
+          allowReserved: false
+          schema:
+            type: string
+            format: datetime
+        - in: query
+          name: end_time
+          description: |-
+            Ending time, exclusive, in RFC3339 format of data period to fetch. Must be at or after start_time.
+          required: true
+          allowReserved: false
+          schema:
+            type: string
+            format: datetime
+
+      responses:
+        "200":
+          description: |-
+            Data object with successful runs for a given time range.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  datasourceId:
+                    type: string
+                    description: ID of the data source.
+                  fetchRangeStart:
+                    type: string
+                    format: datetime
+                    description: Starting time, inclusive, of range to fetch.
+                  fetchRangeEnd:
+                    type: string
+                    format: datetime
+                    description: Ending time, exclusive, of range to fetch.
+                  runs:
+                    type: array
+                    description: Runs overlapping the provided query time range.
+                    items:
+                      type: object
+                      runId:
+                        type: string
+                        format: uuid
+                        description: ID of the run of the data points.
+                      runStart:
+                        type: string
+                        format: datetime
+                        description: RFC3339 of start time of the run.
+                      runEnd:
+                        type: string
+                        format: datetime
+                        description: RFC3339 of end time of the run.
+                      columns:
+                        type: array
+                        items:
+                          type: string
+                      data:
+                        type: array
+                        items:
+                          type: object
+
+        "404":
+          description: |-
+            Error if the given data source doesn't exist or has no runs available.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Message about missing data source."
+
+  /data/{datasource_id}/latest:
+    get:
+      operationId: app.views.get_latest_data_for_source
+      summary: Gets the most recent successful run of data points from the source.
+      parameters:
+        - name: datasource_id
+          in: path
+          description: ID of the datasource.
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: |-
+            Data object with the latest values from the source.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  datasourceId:
+                    type: string
+                    description: ID of the datasource.
+                  runId:
+                    type: string
+                    format: uuid
+                    description: ID of the run of the data points.
+                  runStart:
+                    type: string
+                    format: date-time
+                    description: RFC3339 of start time of the run.
+                  runEnd:
+                    type: string
+                    format: date-time
+                    description: RFC3339 of end time of the run.
+                  columns:
+                    type: array
+                    items:
+                      type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+        "404":
+          description: |-
+            Error if the given data source doesn't exist.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: "Message about missing data source."
+
   /datasources:
     get:
       operationId: app.views.get_available_data_sources
-      summary: Gets the available datasources
+      summary: Gets the available datasources.
       responses:
         "200":
           description: |-
@@ -21,6 +164,24 @@ paths:
             application/json:
               schema:
                 type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    createdAt:
+                      type: string
+                      format: date-time
+                      description: |-
+                        RFC3339 timestamp of when the datasource was booted.
+                    isDisabled:
+                      type: boolean
+                      description: |-
+                        Whether or not the datasource is currently running.
+                    config:
+                      type: object
+                      additionalProperties:
+                        type: string
+                        description: |-
+                          Datatype of the column of the datasource.
 
   /heartbeat:
     get:
@@ -29,11 +190,15 @@ paths:
       responses:
         "200":
           description: |-
-            200 response
+            Uptime and boot time about the server.
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  heartbeat:
+                  bootTime:
                     type: string
+                    description: "RFC3339 time server was started."
+                  uptime:
+                    type: number
+                    description: "Uptime in seconds of server."
