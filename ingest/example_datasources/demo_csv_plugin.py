@@ -25,7 +25,7 @@ def get_fields():
 
 def fetch_data(db_connection, run_id):
     items = []
-    csv_path = join(script_dir, "../datasets/sampleTemp.csv")
+    csv_path = join(script_dir, "../example_datasets/sampleTemp.csv")
     with open(csv_path) as csv_file:
         csv_reader = csv.reader(csv_file)
         for row in csv_reader:

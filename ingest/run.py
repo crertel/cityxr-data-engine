@@ -1,4 +1,4 @@
-from plugin_manager import PluginManager
+from datasource_manager import DatasourceManager
 from os import environ
 
 from app import app
@@ -60,12 +60,12 @@ db_conn.close()
 
 def pump_sources():
     while 1:
-        pm.update_sources()
+        dsm.update_sources()
 
 
 if environ.get("WERKZEUG_RUN_MAIN") == "true":
-    pm = PluginManager()
-    pm.load_sources()
+    dsm = DatasourceManager()
+    dsm.load_sources()
     source_thread = Thread(daemon=True, target=pump_sources)
     source_thread.start()
 
