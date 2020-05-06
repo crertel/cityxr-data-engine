@@ -18,7 +18,7 @@ log.setLevel(logging.INFO)
 psycopg2.extras.register_uuid()
 
 
-class PluginManager(object):
+class DatasourceManager(object):
     _plugins = {}
     _instance = None
     _conn = None
@@ -26,7 +26,7 @@ class PluginManager(object):
 
     def __new__(clazz):
         if clazz._instance is None:
-            clazz._instance = super(PluginManager, clazz).__new__(clazz)
+            clazz._instance = super(DatasourceManager, clazz).__new__(clazz)
         return clazz._instance
 
     def get_plugins(self):
@@ -38,7 +38,7 @@ class PluginManager(object):
     def get_user_plugins_dir(self):
         script_path = abspath(__file__)
         script_dir = dirname(script_path)
-        return join(script_dir, "user_data_sources")
+        return join(script_dir, "user_datasources")
 
     def update_sources(self):
         for (sid, source) in self._plugins.items():

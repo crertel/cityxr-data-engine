@@ -1,6 +1,6 @@
 from app import app
 from flask import url_for, redirect, render_template, flash, g, session
-from plugin_manager import PluginManager
+from datasource_manager import DatasourceManager
 
 import logging
 
@@ -14,14 +14,16 @@ def root():
 
 @app.route("/sources/<source_id>")
 def source_details(source_id):
-    ds = PluginManager().get_plugin(source_id)
-    ds_run_logs = PluginManager().get_run_logs_for_plugin(source_id=source_id, limit=10)
+    ds = DatasourceManager().get_plugin(source_id)
+    ds_run_logs = DatasourceManager().get_run_logs_for_plugin(
+        source_id=source_id, limit=10
+    )
     return render_template("source.html.j2", ds=ds, ds_run_log=ds_run_logs)
 
 
 @app.route("/sources/<source_id>/runs/<run_id>/logs")
 def run_log_details(source_id, run_id):
-    run_log = PluginManager().get_run_logs_for_plugin_run(
+    run_log = DatasourceManager().get_run_logs_for_plugin_run(
         source_id=source_id, run_id=run_id, limit=10
     )
     return render_template("logs.html.j2", log_messages=run_log)
@@ -29,12 +31,12 @@ def run_log_details(source_id, run_id):
 
 @app.route("/dashboard")
 def dashboard():
-    plugins = PluginManager().get_plugins()
+    plugins = DatasourceManager().get_plugins()
     return render_template("dashboard.html.j2", plugins=plugins)
 
 
 @app.route("/sources/<source_id>/purge_and_reload")
 def restart_button(source_id):
-    ds = PluginManager().get_plugin(source_id)
+    ds = DatasourceManager().get_plugin(source_id)
     ds.retstart(purge_data=True)
     return render_template("reset.html.j2")
