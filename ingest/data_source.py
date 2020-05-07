@@ -12,6 +12,7 @@ from uuid import uuid4
 import traceback
 
 log = logging.getLogger(__name__)
+from pprint import pformat
 
 
 class DataSource:
@@ -55,6 +56,13 @@ class DataSource:
             parent_pipe=parent_pipe,
         )
 
+    def ingest(self, msg_body):
+        self.send_message("msg_ingest", msg_body)
+
+    def send_message(self, msg_type, msg_body):
+        cpipe = self._child_pipe
+        cpipe.send((msg_type, msg_body))
+
     def update(self):
         cpipe = self._child_pipe
         while cpipe.poll() is True:
@@ -72,6 +80,9 @@ class DataSource:
         spec.loader.exec_module(plugin_module)
         init = plugin_module.init
         schedule = plugin_module.schedule
+        if schedule() is None:
+            ingest_data = plugin_module.ingest_data
+
         data_source_fields = plugin_module.get_fields()
         fetch_data = plugin_module.fetch_data
         clean_data = plugin_module.clean_data
@@ -90,17 +101,26 @@ class DataSource:
 
         while 1:
             # if we have messages from the main process, handle them
+            ingests = []
             while parent_pipe.poll() is True:
-                msg = parent_pipe.recv()
-                # TODO: handle state querying messages, whatever else
+                msg = (msg_type, msg_body) = parent_pipe.recv()
+                if msg_type == "msg_ingest":
+                    log.error(f"INGEST: {pformat(msg)}")
+                    ingests.append(msg_body)
+                else:
+                    log.error(f"MSG RECV: {pformat(msg)}")
 
             # after we handle pending events, if schedule says so we do a run.
             now = datetime.now(timezone.utc)
-            if next_trigger_time is None or now >= next_trigger_time:
-                next_trigger_time = schedule_trigger.get_next_fire_time(
-                    last_trigger_time, now
-                )
-                parent_pipe.send(("update_trigger_time", next_trigger_time))
+            if (schedule_trigger is None and len(ingests) > 0) or (
+                schedule_trigger is not None
+                and (next_trigger_time is None or now >= next_trigger_time)
+            ):
+                if schedule_trigger is not None:
+                    next_trigger_time = schedule_trigger.get_next_fire_time(
+                        last_trigger_time, now
+                    )
+                    parent_pipe.send(("update_trigger_time", next_trigger_time))
 
                 run_id = uuid4()
                 run_start_time = datetime.now(timezone.utc)
@@ -116,7 +136,10 @@ class DataSource:
                         run_id=run_id,
                     )
                     db_connection.update_run(run_id, "fetching")
-                    raw_data = fetch_data(db_connection, run_id)
+                    if schedule_trigger is None:
+                        raw_data = ingest_data(db_connection, run_id, ingests)
+                    else:
+                        raw_data = fetch_data(db_connection, run_id)
                     db_connection.insert_data_current_raw(run_id, raw_data)
 
                     db_connection.update_run(run_id, "cleaning")
