@@ -64,26 +64,27 @@ paths:
                     description: Runs overlapping the provided query time range.
                     items:
                       type: object
-                      runId:
-                        type: string
-                        format: uuid
-                        description: ID of the run of the data points.
-                      runStart:
-                        type: string
-                        format: datetime
-                        description: RFC3339 of start time of the run.
-                      runEnd:
-                        type: string
-                        format: datetime
-                        description: RFC3339 of end time of the run.
-                      columns:
-                        type: array
-                        items:
+                      properties:
+                        runId:
                           type: string
-                      data:
-                        type: array
-                        items:
-                          type: object
+                          format: uuid
+                          description: ID of the run of the data points.
+                        runStart:
+                          type: string
+                          format: datetime
+                          description: RFC3339 of start time of the run.
+                        runEnd:
+                          type: string
+                          format: datetime
+                          description: RFC3339 of end time of the run.
+                        columns:
+                          type: array
+                          items:
+                            type: string
+                        data:
+                          type: array
+                          items:
+                            type: object
 
         "404":
           description: |-
