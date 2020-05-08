@@ -28,10 +28,20 @@
           </a>
         </th>
         <td>{{ pid }}</td>
-        <td>{{pinstance.state}}</td>
+        <td>
+          {{pinstance.status}}
+        </td>
         <td>{{pinstance.started_at.isoformat() if pinstance.next_trigger_time else '-'}}</td>
         <td>{{pinstance.next_trigger_time.isoformat() if pinstance.next_trigger_time else 'webhook'}}</td>
         <td>
+          <form action="/sources/{{pid}}/pause" method="POST">
+            <input type="hidden" name="source_id" value="{{pid}}"></input>
+            <button type="submit" class="btn btn-danger btn-sm"> Pause</button>
+          </form>
+          <form action="/sources/{{pid}}/unpause" method="POST">
+            <input type="hidden" name="source_id" value="{{pid}}"></input>
+            <button type="submit" class="btn btn-success btn-sm"> Unpause</button>
+          </form>
           <!-- Button trigger modal -->
           <button type="button" class="btn btn-danger" data-toggle="modal" data-target="#resetModal-{{pid}}">
           Reset

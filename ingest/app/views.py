@@ -42,6 +42,20 @@ def restart_button(source_id):
     return render_template("reset.html.j2")
 
 
+@app.route("/sources/<source_id>/pause", methods=["POST"])
+def pause_datasource(source_id):
+    ds = DatasourceManager().get_plugin(source_id)
+    ds.pause()
+    return redirect("/dashboard", code=302)
+
+
+@app.route("/sources/<source_id>/unpause", methods=["POST"])
+def unpause_datasource(source_id):
+    ds = DatasourceManager().get_plugin(source_id)
+    ds.unpause()
+    return redirect("/dashboard", code=302)
+
+
 @app.route("/web_ingest/<source_id>", methods=["POST"])
 def web_ingest(source_id):
     ds = DatasourceManager().get_plugin(source_id)
@@ -51,3 +65,12 @@ def web_ingest(source_id):
         return ("", 200)
     else:
         return ("", 400)
+
+
+@app.after_request
+def add_header(response):
+    response.cache_control.max_age = 0
+    response.cache_control.no_cache = True
+    response.cache_control.no_store = True
+
+    return response
