@@ -47,6 +47,7 @@ class DataSource:
             dbc = DatabaseConnection(self.runtime_id)
             dbc.connect_to_database()
             dbc.purge_datasource_schema()
+            dbc.disconnect_from_database()
         (child_pipe, parent_pipe) = Pipe(duplex=True)
         self._child_pipe = child_pipe
         self._start_process(
