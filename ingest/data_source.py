@@ -20,6 +20,7 @@ class DataSource:
         self.runtime_id = runtime_id
         self.source_code = source_code
         self.name = name
+        self.status = "created"
         self.started_at = datetime.now(timezone.utc)
         self.module_path = module_path
         (child_pipe, parent_pipe) = Pipe(duplex=True)
@@ -57,23 +58,26 @@ class DataSource:
             parent_pipe=parent_pipe,
         )
 
+    def pause(self):
+        self.send_message("pause", "")
+
+    def unpause(self):
+        self.send_message("unpause", "")
+
     def ingest(self, msg_body):
         self.send_message("msg_ingest", msg_body)
 
     def send_message(self, msg_type, msg_body):
-        cpipe = self._child_pipe
-        cpipe.send((msg_type, msg_body))
+        self._child_pipe.send((msg_type, msg_body))
 
     def update(self):
-        cpipe = self._child_pipe
-        while cpipe.poll() is True:
-            # TODO: for every parent message, pop it off and do something with it
-            msg = (msg_type, msg_body) = cpipe.recv()
+        while self._child_pipe.poll() is True:
+            (msg_type, msg_body) = self._child_pipe.recv()
 
             if msg_type == "update_trigger_time":
                 self.next_trigger_time = msg_body
-            log.warning(msg)
-            # handle state querying messages, whatever else
+            elif msg_type == "update_status":
+                self.status = msg_body
 
     def do_run(name, runtime_id, module_path, parent_pipe):
         spec = importlib.util.spec_from_file_location(f"plugin_{name}", module_path)
@@ -90,9 +94,16 @@ class DataSource:
 
         init(runtime_id, name)
 
+        is_paused = False
         next_trigger_time = None
         last_trigger_time = None
         schedule_trigger = schedule()
+
+        def message_parent(topic, msg):
+            parent_pipe.send((topic, msg))
+
+        def tell_parent_status(status):
+            parent_pipe.send(("update_status", status))
 
         db_connection = DatabaseConnection(runtime_id)
         db_connection.connect_to_database()
@@ -108,6 +119,12 @@ class DataSource:
                 if msg_type == "msg_ingest":
                     log.error(f"INGEST: {pformat(msg)}")
                     ingests.append(msg_body)
+                elif msg_type == "pause":
+                    log.error(f"PAUSED")
+                    is_paused = True
+                elif msg_type == "unpause":
+                    log.error(f"UNPAUSED")
+                    is_paused = False
                 else:
                     log.error(f"MSG RECV: {pformat(msg)}")
 
@@ -121,11 +138,16 @@ class DataSource:
                     next_trigger_time = schedule_trigger.get_next_fire_time(
                         last_trigger_time, now
                     )
-                    parent_pipe.send(("update_trigger_time", next_trigger_time))
+                    message_parent("update_trigger_time", next_trigger_time)
 
                 run_id = uuid4()
                 run_start_time = datetime.now(timezone.utc)
                 run_succeeded = False
+                if is_paused:
+                    tell_parent_status("paused")
+                    continue
+                else:
+                    tell_parent_status("running")
                 db_connection.begin_run(run_id)
                 db_connection.empty_current_raw_table()
                 db_connection.empty_current_clean_table()
@@ -175,4 +197,5 @@ class DataSource:
                     else:
                         log.error(f"Run #{run_id} failed in #{run_duration}")
                         db_connection.end_run(run_id, "failed")
+                tell_parent_status("sleeping")
             sleep(1)
