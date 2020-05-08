@@ -5,11 +5,20 @@ import json
 import psycopg2
 from psycopg2 import sql
 import psycopg2.extras
+from datetime import date, datetime, timezone
 
 psycopg2.extras.register_uuid()
 
 
 log = logging.getLogger(__name__)
+
+
+# hack to fix date serialization in json
+# from https://stackoverflow.com/a/22238613
+def json_serial(obj):
+    if isinstance(obj, (datetime, date)):
+        return obj.isoformat()
+    raise TypeError("Type %s not serializable" % type(obj))
 
 
 # Every data source has its own schema.
@@ -71,11 +80,52 @@ class DatabaseConnection:
         self._data_source_runtime_id = data_source_runtime_id
         self._schema_name = f"datasource_{data_source_runtime_id}"
         self._conn = None
+        self._messagingConn = None
         self._cursor = None
+
+    def disconnect_from_database(self):
+        if self._conn is not None:
+            del self._conn
+            self._conn = None
+            self._cursor = None
+        if self._messagingConn is not None:
+            del self._messagingConn
+            self._messagingConn = None
 
     def connect_to_database(self):
         self._conn = psycopg2.connect(PG_URL)
+        self._messagingConn = psycopg2.connect(PG_URL)
+        self._messagingConn.set_isolation_level(
+            psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT
+        )
         self._cursor = self._conn.cursor()
+
+    def send_notification(self, channel, msg):
+        if self._messagingConn is not None:
+            curs = self._messagingConn.cursor()
+            q = sql.SQL("select pg_notify({channel_name}, {payload});").format(
+                channel_name=sql.Literal(channel),
+                payload=sql.Literal(json.dumps(msg, default=json_serial)),
+            )
+            curs.execute(q)
+
+    def subscribe_to_notifications(self, channel):
+        if self._messagingConn is not None:
+            curs = self._messagingConn.cursor()
+            curs.execute(
+                sql.SQL("listen {channel_name};").format(
+                    sql.Identifier(channel_name=channel)
+                )
+            )
+
+    def poll_notifications(self):
+        notifications = []
+        if self._messagingConn is not None:
+            self._messagingConn.poll()
+            while self._messagingConn.notifies:
+                notify = self._messagingConn.notifies.pop(0)
+                notifications.append((notify.channel, notify.payload))
+        return notifications
 
     def purge_datasource_schema(self):
         purge_ds_schema_sql = sql.SQL(
@@ -233,6 +283,10 @@ class DatabaseConnection:
         ).format(sql.Identifier(self._schema_name))
         self._cursor.execute(end_run_sql, (ending_type, run_id))
         self._conn.commit()
+        self.send_notification(
+            self._schema_name,
+            {"m": "run_finish", "s": ending_type, "t": datetime.now(timezone.utc)},
+        )
 
     def insert_data(self, table, run_id, data):
         if len(data) > 0:
