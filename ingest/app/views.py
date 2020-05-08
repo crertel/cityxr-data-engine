@@ -1,5 +1,5 @@
 from app import app
-from flask import url_for, redirect, render_template, flash, g, session
+from flask import url_for, redirect, render_template, flash, g, session, request
 from datasource_manager import DatasourceManager
 
 import logging
@@ -40,3 +40,14 @@ def restart_button(source_id):
     ds = DatasourceManager().get_plugin(source_id)
     ds.retstart(purge_data=True)
     return render_template("reset.html.j2")
+
+
+@app.route("/web_ingest/<source_id>", methods=["POST"])
+def web_ingest(source_id):
+    ds = DatasourceManager().get_plugin(source_id)
+    body_json = request.get_json()
+    if body_json is not None:
+        ds.ingest(request.json)
+        return ("", 200)
+    else:
+        return ("", 400)
